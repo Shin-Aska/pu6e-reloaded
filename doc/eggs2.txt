@@ -1,0 +1,126 @@
+A Practical Guide to Creating Eggs
+==================================
+
+
+You Will Need
+-------------
+
+1.  A party, including Quenton, a gargoyle or any other flying creature
+
+2.  The Avatar, STAMPed with a bug so we can find out which file he's in.
+
+3.  A multi-tasking system (Windows 3.1, Windows 95 or DRDOS Taskmgr)
+
+4.  An up-to-date copy of the OBED Object Editor, with Tag Search support
+    (http://ithe.cjb.net)
+
+5.  The List of Objects (On paper, or in an editor you can task-switch to)
+
+
+
+The Method
+----------
+
+1. Open two DOS sessions.  Start Ultima 6 in one, and change to the SAVEGAME
+directory (or whatever it's called, if you're using U6MGR).
+
+2. Decide where you want to create the Egg, and move the Avatar nearby.
+
+3. Switch to Quenton (or your winged companion) and fly to to the Isle of the
+   Avatar.  Stand him near the Codex.  Make sure he isn't carrying anything,
+   just in case we have an accident (and lose his posessions!).
+
+4. Move Quenton South to where the gargoyles are and wait there.
+
+5. Switching back to the Egg-site, talk to IOLO and create a Leather Helm
+   (#1) with a Quality of 255.
+
+6. Make the Avatar drop this special helm in the exact spot where you want
+   the Egg to be.
+
+7. Save the game, and switch task.
+
+8. Using finder, get the filename of the OBJBLK file where the Avatar is.
+
+9. Copy the file OBJBLKHG to a backup file, for example OBJBLKHG.EGG
+
+10. Now edit the file where the Avatar was found (for example, OBJBLKCC)
+
+    obed objblkcc
+
+11. Look for your special Helmet.  If you have the new version of OBED,
+    you can use the Search feature.
+
+    Press '?', and enter FF.  If it finds something else, press ? again
+    and enter 0, to repeat the search.
+
+12. Ok, so the Helmet is now highlighted.  Press ENTER, and write down
+    the values for 'UNKNOWN H', 'UNKNOWN D' and the second 'UNKNOWN D'.
+
+    I usually write them down in the form:
+
+	FFF7	<- Unknown H
+	FFAB	<- Unknown D
+	5	<- Unknown D-2
+
+13. Press ESC and quit the editor, don't save changes.
+
+14. Go back to the game, pick up the helm, and move the Avatar away from
+    the area where the egg will appear.  About 32 paces should be sufficient.
+
+15. Save the game again, and switch task.
+
+16. Start the object editor again, and edit OBJBLKHG, which is the Codex
+    room, where Quenton was before he moved.
+
+17. Now, at the top of the file are two Eggs, a Drake and a Squid.
+    There is also a bird lower down.  Select the EGG object ABOVE one of these
+    and change the values for UNKNOWN H and the two UNKNOWN D values to what
+    you wrote down in step 12.
+
+    You may also change the probability of the egg hatching a monster.
+    To do this, change the value of Quantity in the egg.
+    This is a percentage, but you must convert it to hex.
+    64 is 100%, 42 is 66%, 32 is 50%, 21 is 33%, 19 is 25% and 0C is 12%.
+
+18. Press ESC once, and edit the second object, the one BELOW THE EGG.
+
+    You can now change it as follows:
+
+    Type:     Enter the appropriate number from the List of Objects.
+              It doesn't have to be a living creature, it can be an object
+              too, for example, money or magic armour.
+
+    Quantity: Maximum number of objects that appear.
+              For Silver Snakes, this determines the length of the snake.
+
+    Quality:  If you set this to 9, a creature will be docile and runs away.
+	      If you set it to 8, they will be aggressive and violent.
+	      (This was sampled from a comparison between the 'Death Deer' I
+               created accidentally in Doug's Castle, and wild deer outside
+               Trinsic way.)
+               There are other values but I don't know what they mean.
+
+19. Now, press ESC again and quit the editor.  SAVE THE CHANGES.
+
+20. Switch back to the game, and RESTORE your position.
+    Switch to Quenton, and move him North, up to the Codex Room.
+    This action will force the eggs we've changed to move themselves to the
+    new location, where the helm was.
+
+21. Switch to the Avatar, and walk him to the spot where the Helm was.
+    Your shiny, new monsters should be there.
+    If they aren't, Restore, walk the Avatar far, far away and come back.
+    If all has gone well, it should be there now.
+
+22. Now, to finish off, we need to bring back the Egg that was taken from
+    the Isle of the Avatar, so it can be re-used to make a new creature.
+
+23. Switch to Quenton, and move him back South to the Shrine.
+
+24. Save, and switch task.
+
+25. Copy the backup OBJBLKHG.EGG over OBJBLKHG.
+
+26. Switch back to the game, RESTORE, and everything is ready for you to
+    do it again!

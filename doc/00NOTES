@@ -1,0 +1,36 @@
+ContainerIO module?  TarIO?  Found ref. on PIL webpage.
+
+The bed at 07b,0c4 doesn't look right (missing half).
+
+martian dreams:
+   standard n byte header: int32 file length; int16 header length; int16 ...
+        Byte 4-5 seems to indicate header length, including int32 size.
+		I don't understand the rest of the header bytes (seem to be uint16)
+   objtiles.vga - not compressed
+   maptiles.vga - 8 byte header
+   look.lzc - 8 byte header
+   masktype.vga - 8 byte header
+   basetile - not compressed
+
+
+remaining till release:
+	verify GoTo works okay on win [done]
+	decide and verify speed on win and linux [done]
+	status hex [partial--must press enter to update]
+	hook up menu item [done]
+	status validation/defocus [deferred]
+	numpad / levels /windows [done]
+	tile viewer [done]
+	pause display [deferred]
+	drop/paint tile on right click [done]
+	view/hide statusbar [deferred]
+	ladder coordinates [done]
+	view/hide coord display [done]
+	chunk editor dialog [done]
+	why can't I resize stack editor [done]
+	center map coords [done]
+	coordinate display on screen [done]
+	map statusbar / coords [done]
+	load u6.ch font for md/se [done]
+	tab traversal on stack editor [done--but does not work between panels]
+	lzw.py must be copied from lzw/lzw.py into U6/lzw.py [done]
