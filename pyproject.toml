@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=80"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pu6e-reloaded"
+version = "0.7.0"
+description = "A Python 3.14 port of the pu6e Ultima VI world editor"
+readme = "README.md"
+requires-python = ">=3.14"
+license = {file = "00LICENSE.txt"}
+authors = [{name = "Jim Ursetto"}]
+dependencies = [
+  "numpy>=2.2",
+  "PyOpenGL>=3.1.9",
+  "wxPython>=4.3.1",
+]
+
+[project.scripts]
+pu6e = "pu6e:main"
+
+[tool.setuptools]
+packages = ["U6"]
+py-modules = ["Pseudohash", "fastgl", "mapedit_gl", "mapedit_wxgl", "pu6e"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
