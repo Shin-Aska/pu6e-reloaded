@@ -35,6 +35,10 @@ Valid game types are `fp` (Ultima VI: The False Prophet), `md` (Martian
 Dreams), and `se` (Savage Empire). Game assets are copyrighted and are not
 included.
 
+For game-data preparation, configuration examples, navigation, editing,
+keyboard shortcuts, safe saving, and troubleshooting, see the
+**[User Guide](docs/USAGE.md)**.
+
 ## Development
 
 Install the project and pytest, then run the test suite:
