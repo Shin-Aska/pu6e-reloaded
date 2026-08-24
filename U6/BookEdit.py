@@ -37,7 +37,7 @@ class BookEditor(object):
 		self.frame.spin.SetValue(book)
 
 	def create(self):
-		self.frame = BookFrame(NULL, -1, "Book Editor")
+		self.frame = BookFrame(None, -1, "Book Editor")
 		# Set the book number (since we don't currently preserve it
 		# across instances).
 		self.set_book(0)
@@ -58,7 +58,7 @@ class BookApp(App):
 		bookedit = BookEditor()
 		bookedit.Show()
 		self.SetTopWindow(bookedit.frame)
-		return true
+		return True
 
 if __name__ == '__main__':
 	book.read()

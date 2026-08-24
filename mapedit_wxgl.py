@@ -170,7 +170,7 @@ class MapFrame(Frame):
 
 	def Quit(self, event):
 		sys.exit()
-		self.Close(true)
+		self.Close(True)
 
 	def Save(self, event):
 		try:
@@ -204,7 +204,7 @@ class MapFrame(Frame):
 	def ShowFullScreen(self, full):
 		# The menu bar fails to disappear with GTK 2.4.0, so we remove it manually.
 		# This should be fixed with 2.4.1 and above.
-		if full == true:
+		if full == True:
 			if self.fullscreen_hides_menubar:
 				self.HideMenuBar()
 				self.HideStatusBar()
@@ -219,7 +219,8 @@ class MapFrame(Frame):
 class MyCanvasBase(GLCanvas):
 	def __init__(self, parent):
 		GLCanvas.__init__(self, parent, -1)
-		self.init = false
+		self.context = GLContext(self)
+		self.init = False
 		# initial mouse position
 		self.lastx = self.x = 30
 		self.lasty = self.y = 30
@@ -236,15 +237,15 @@ class MyCanvasBase(GLCanvas):
 	def OnSize(self, event):
 		size = self.GetClientSize()
 		self.ResizeGL(size.width, size.height)
-		if self.GetContext():
-			self.SetCurrent()
+		if self.context and self.IsShownOnScreen():
+			self.SetCurrent(self.context)
 
 	def OnPaint(self, event):
 		dc = PaintDC(self)
-		self.SetCurrent()
+		self.SetCurrent(self.context)
 		if not self.init:
 			self.InitGL()
-			self.init = true
+			self.init = True
 		self.OnDraw()
 
 	def OnMouseDown(self, evt):
@@ -260,7 +261,7 @@ class MyCanvasBase(GLCanvas):
 		#if evt.Dragging() and evt.LeftIsDown():
 		#	self.x, self.y = self.lastx, self.lasty
 		#	self.x, self.y = evt.GetPosition()
-		#	self.Refresh(false)
+		#	self.Refresh(False)
 
 class MapCanvas(MyCanvasBase):
 	def __init__(self, parent, stackedit, chunkedit, tileedit):
@@ -292,14 +293,14 @@ class MapCanvas(MyCanvasBase):
 	def OnIdle(self, event):
 		render.tick()
 		if render.game_timer > 2000: sys.exit()
-		self.Refresh(false)       # Repaint GL canvas (without erasing bg)
-		event.RequestMore(true)   # Call idle function repeatedly.
+		self.Refresh(False)       # Repaint GL canvas (without erasing bg)
+		event.RequestMore(True)   # Call idle function repeatedly.
 
 	def Notify(self):
 		render.tick()
 		#print render.game_timer
 		#if render.game_timer > 500: sys.exit()
-		self.Refresh(false)
+		self.Refresh(False)
 
 	def OnKeyDownPlay(self, evt):
 		key = evt.GetKeyCode()
@@ -533,7 +534,7 @@ class MapCanvas(MyCanvasBase):
 		#self.GetParent().SetTitle("Map Editor (%03x, %03x, %d)" % tuple(render.coords))
 		# We may perform a double refresh if animation is active.  The Perl
 		# code does not refresh on movement, if animation active.
-		# self.Refresh(false)
+		# self.Refresh(False)
 
 	# Zoom by factor. factor > 1 to zoom in, 0 < factor < 1 to zoom out.
 	def zoom(self, factor):

@@ -6,6 +6,7 @@ from U6.ObjEdit import ObjPanel
 #--------------------------------------------------------------------------
 
 evtOBJECTUPDATED = NewEventType()
+EVT_OBJECTUPDATED = PyEventBinder(evtOBJECTUPDATED, 1)
 
 #def EVT_OBJECTLISTCHANGED( window, function ):
 #	"""Your documentation here"""
@@ -17,8 +18,8 @@ class ObjectUpdatedEvent(PyCommandEvent):
 		PyCommandEvent.__init__(self, self.eventType, windowID)
 		self.__data = data
 
-	def Clone( self ):
-		self.__class__( self.GetId() )
+	def Clone(self):
+		return self.__class__(self.GetId(), self.__data)
 
 	def GetData(self):
 		return self.__data
@@ -93,7 +94,7 @@ class StackFrame(Frame):
 		self.hbox.Add(self.stackpanel, 1, EXPAND)
 		self.hbox.Add(self.objpanel,   0, EXPAND)
 		self.SetSizer(self.hbox)
-		EVT_COMMAND(self, -1, evtOBJECTUPDATED, self.OnObjectUpdated)
+		self.Bind(EVT_OBJECTUPDATED, self.OnObjectUpdated)
 
 		# aliases
 		self.set_default_obj = self.stackpanel.set_default_obj
@@ -627,7 +628,7 @@ class StackApp(App):
 		point = Point.Point(0x134, 0x16c, 0)
 		stackedit.set_point(point, 0x134, 0x16c, 0)
 		self.SetTopWindow(stackedit.frame)
-		return true
+		return True
 
 if __name__ == '__main__':
 	app = StackApp(0)

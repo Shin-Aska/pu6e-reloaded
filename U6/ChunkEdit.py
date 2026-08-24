@@ -77,7 +77,7 @@ class ChunkApp(App):
 		frame = ChunkFrame(None, -1, "Chunk Editor", Map)
 		frame.Show()
 		self.SetTopWindow(frame)
-		return true
+		return True
 
 if __name__ == '__main__':
 	from . import Map

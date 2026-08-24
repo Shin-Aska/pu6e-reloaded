@@ -40,7 +40,7 @@ paletted = {}
 coords = [0xde, 0xad, 0]
 center_offset = (0, 0)
 
-fontchars = []
+fontchars = None
 def screen_to_world(x, y):
 	wx, wy, wz = coords
 	if wz == 0:
@@ -157,6 +157,13 @@ def generate_map_texture():
 
 	return tex
 
+def fontchar_to_rgba(fontchar_pal):
+	"""Convert an 8x8 font mask to 64 native RGBA pixels."""
+	rgba = Numeric.zeros(64, dtype=Numeric.uint32)
+	white = Numeric.full(64, 0xFFFFFFFF, dtype=Numeric.uint32)
+	Numeric.putmask(rgba, fontchar_pal, white)
+	return rgba.tobytes()
+
 def InitGL(w, h):
 	global textures
 	global maptex, fonttex
@@ -195,16 +202,14 @@ def InitGL(w, h):
 
 	update_animated_tiles(0)
 
-	if Font.chardata:
+	fontchars = None
+	if Font.chardata is not None:
 		print("Generating font texture...")
 		fontchars = glGenTextures(256)
 		for i in range(256):
 			fontchar_pal = Font.convert_1_to_8(i, 1)
 			# fontchar_rgba, dummy = indexed_to_rgba(fontchar_pal, palette.palstr)
-			fontchar_rgba = Numeric.zeros(64, dtype=Numeric.uint8)
-			bright_white = Numeric.resize(Numeric.array([255], dtype=Numeric.uint8), (64,))
-			Numeric.putmask(fontchar_rgba, fontchar_pal, bright_white)
-			fontchar_rgba = fontchar_rgba.tobytes()  # glTexImage2D doesn't support buffer
+			fontchar_rgba = fontchar_to_rgba(fontchar_pal)
 			glBindTexture(GL_TEXTURE_2D, fontchars[i])
 			glPixelStorei(GL_UNPACK_ALIGNMENT,1)  # FIXME necessary?
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 8, 8, 0, GL_RGBA, GL_UNSIGNED_BYTE, fontchar_rgba)
@@ -616,7 +621,7 @@ def draw_grid(width, height, txs, tys):
 
 	# Draw chunk numbers
 	# but don't draw them if we have no font!
-	if not fontchars: return
+	if fontchars is None: return
 
 	# glScalef(0.5, 0.5, 1.0)
 	glEnable(GL_TEXTURE_2D)
@@ -647,7 +652,7 @@ def draw_grid(width, height, txs, tys):
 		draw_font_str("%s" % c, x+20, y+20, 0)
 
 def draw_coords():
-	if not fontchars: return
+	if fontchars is None: return
 	width = int(screen_width)
 	height = int(screen_height)
 	glEnable(GL_BLEND)

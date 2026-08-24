@@ -169,7 +169,7 @@ class TileEditApp(App):
 		frame = TileFrame(None, NewIdRef(), "Tile Editor", palette)
 		frame.Show()
 		self.SetTopWindow(frame)
-		return true
+		return True
 
 if __name__ == '__main__':
 	from os import chdir

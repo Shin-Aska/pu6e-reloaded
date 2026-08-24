@@ -58,7 +58,7 @@ class ObjPanel(Panel):
 			self.SetSizer(self.vbox)
 
 		else:
-			self.gs = GridSizer(5, 2, 5, 5)
+			self.gs = GridSizer(0, 2, 5, 5)
 			for text, ctrl in controls:
 				self.gs.Add(StaticText(self, NewIdRef(), text, style=ALIGN_RIGHT), 0, ALIGN_CENTER_VERTICAL | ALIGN_RIGHT)
 				self.gs.Add(ctrl, 0, EXPAND)
@@ -151,7 +151,7 @@ class ObjEditApp(App):
 		frame = ObjFrame(None, NewIdRef(), "Object Editor")
 		frame.Show()
 		self.SetTopWindow(frame)
-		return true
+		return True
 
 if __name__ == '__main__':
 	app = ObjEditApp(0)

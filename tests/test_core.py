@@ -108,3 +108,16 @@ def test_missing_font_clears_previous_game_data(monkeypatch, tmp_path):
 
     assert Font.read("se") == 0
     assert Font.chardata is None
+
+
+def test_font_mask_expands_to_complete_rgba_pixels():
+    import numpy
+    import mapedit_gl
+
+    mask = numpy.zeros(64, dtype=numpy.uint8)
+    mask[1] = 1
+    rgba = mapedit_gl.fontchar_to_rgba(mask)
+
+    assert len(rgba) == 8 * 8 * 4
+    assert rgba[:4] == bytes(4)
+    assert rgba[4:8] == bytes((255, 255, 255, 255))

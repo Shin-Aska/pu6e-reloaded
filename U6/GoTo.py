@@ -63,7 +63,7 @@ class GoToApp(App):
 		if val == ID_OK:
 			print(d.Values())
 		d.Destroy()
-		return true
+		return True
 
 if __name__ == '__main__':
 	app = GoToApp(0)

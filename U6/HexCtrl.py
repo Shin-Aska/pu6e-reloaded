@@ -1,8 +1,9 @@
+from wx import *
 from wx.lib.intctrl import *
 import types, string
 from sys import maxsize
-MAXINT = maxint     # (constants should be in upper case)
-MININT = -maxint-1
+MAXINT = maxsize     # (constants should be in upper case)
+MININT = -maxsize-1
 #----------------------------------------------------------------------------
 
 class HexValidator(IntValidator):
@@ -244,7 +245,7 @@ if __name__ == '__main__':
             hs.AddWindow( self.Cancel, 0, ALIGN_CENTRE|ALL, 5 )
             vs.AddSizer(hs, 0, ALIGN_CENTRE|ALL, 5 )
 
-            self.SetAutoLayout( true )
+            self.SetAutoLayout( True )
             self.SetSizer( vs )
             vs.Fit( self )
             vs.SetSizeHints( self )
@@ -256,7 +257,7 @@ if __name__ == '__main__':
     class TestApp(App):
         def OnInit(self):
             try:
-                self.frame = Frame(NULL, -1, "Test",
+                self.frame = Frame(None, -1, "Test",
                                      Point(20,20), Size(120,100)  )
                 self.panel = Panel(self.frame, -1)
                 button = Button(self.panel, 10, "Push Me",
@@ -264,8 +265,8 @@ if __name__ == '__main__':
                 EVT_BUTTON(self, 10, self.OnClick)
             except:
                 traceback.print_exc()
-                return false
-            return true
+                return False
+            return True
 
         def OnClick(self, event):
             dlg = myDialog(self.panel, -1, "test IntCtrl")
@@ -277,7 +278,7 @@ if __name__ == '__main__':
             self.frame.Destroy()
 
         def Show(self):
-            self.frame.Show(true)
+            self.frame.Show(True)
 
     try:
         app = TestApp(0)
