@@ -131,7 +131,7 @@ def parse_maptiles(buf):
 				if add >= 1760:
 					actual_add += 160
 				tileidx += actual_add
-				tiledata[tileidx:runlength] = run
+				tiledata[tileidx:tileidx + runlength] = run
 				tileidx += runlength
 
 			tiledata = bytes(tiledata)
