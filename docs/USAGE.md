@@ -54,9 +54,24 @@ sudo apt install libxcb-cursor0
 The current checked-out `.venv` may already run through a localized workaround,
 but the system package is the reliable setup for a fresh environment.
 
-## 3. Configure a game
+## 3. Launch and configure your games
 
-Edit `pu6e.conf` in the directory from which you launch the editor:
+Run the installed launcher from the project directory:
+
+```console
+.venv/bin/pu6e
+```
+
+The launcher lists Ultima VI, Martian Dreams, and The Savage Empire. Click the
+cog beside a game, browse to a complete backed-up working copy, and save its
+configuration. The configurator identifies missing or incorrect game files,
+including the saved-world object blocks. **Launch editor** appears only when
+the selected installation is complete. Each game's directory is remembered
+independently, so switching worlds does not require editing a configuration
+file. Closing an editor returns to the launcher.
+
+Existing `pu6e.conf` configurations are imported automatically. Manual
+configuration remains available when needed:
 
 ```ini
 [pu6e]
@@ -73,7 +88,7 @@ On Windows, either use forward slashes or double backslashes:
 gamedir = C:/Games/ULTIMA6-pu6e
 ```
 
-Choose the matching game type:
+Choose the matching game type for a manual configuration:
 
 | Value | Game |
 | --- | --- |
@@ -88,13 +103,11 @@ Martian Dreams and Savage Empire do not normally include the Ultima VI bitmap
 font. Copy `u6.ch` from an owned Ultima VI installation into their working
 directory if you want the coordinate and grid-number overlays.
 
-## 4. Start the editor
+## 4. Open the editor
 
-Run the installed editor from the directory containing `pu6e.conf`:
-
-```console
-.venv/bin/pu6e
-```
+Click **Launch editor** on any configured game card. The launcher writes the
+selected game into the compatible `[pu6e]` settings while retaining the
+independent `[game:fp]`, `[game:md]`, and `[game:se]` directory profiles.
 
 For development checks, use the same virtual environment rather than a bare
 host Python:
@@ -126,7 +139,13 @@ them, then return focus to the map for map controls.
 | Numpad `0` | Ascend one level |
 | `+` / numpad `+` | Zoom in 2× |
 | `-` / numpad `-` | Zoom out 2× |
+| `Ctrl+0` | Reset map zoom to 100% |
+| `Alt+Up` / `Alt+Down` | Ascend or descend one world level |
 | `Ctrl+G` | Go to hexadecimal X, Y, Z coordinates |
+
+The icon toolbar also shows the current zoom percentage, offers preset zoom
+levels, and provides a world-level selector for jumping directly between the
+surface and any of the five underworld levels.
 
 On Windows, enable Num Lock for numeric-keypad navigation.
 
@@ -182,6 +201,7 @@ Shift+left-drag copies the source map chunk to the destination chunk position.
 | `C` | Toggle Map chunk |
 | `M` | Toggle World map |
 | `Ctrl+G` | Open Go To |
+| `Ctrl+K` | Open the Quests & NPCs browser |
 
 The same features are available from the workbench **File**, **Edit**, **View**,
 **Tools**, and **Window** menus. Shortcut availability follows the focused
@@ -245,6 +265,18 @@ right-button terrain painting. Press `T` to toggle its visibility.
 
 The read-only Book Viewer displays Ultima VI book text by book number. Martian
 Dreams and Savage Empire book formats are not decoded and appear empty.
+
+### Quests and NPCs
+
+The Quests & NPCs dock reads Ultima VI conversation archives and lets you
+search character names, dialogue, and quest clues. Select a character to read
+their extracted conversation, then choose **Jump to character** to center the
+world map on their current location when that character exists in the world.
+
+Conversation text is intentionally read-only. The original quest scripting,
+control flow, and quest-flag formats have not been fully decoded, so pu6e
+cannot safely create or modify quests. Games without compatible conversation
+archives display an explicit availability message.
 
 ## 9. Save safely
 

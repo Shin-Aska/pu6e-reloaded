@@ -10,6 +10,8 @@ current PyOpenGL. The obsolete SWIG LZW extension has been replaced with a
 memory-safe pure-Python decoder. The old sources are kept for historical
 reference and are not part of the active package build.
 
+![pu6e Reloaded Qt world editor](docs/main.png)
+
 ## Requirements
 
 - Python 3.14
@@ -30,15 +32,17 @@ uv venv --python 3.14
 uv sync
 ```
 
-Set `gamedir` and `gametype` in `pu6e.conf`, then launch the installed editor:
+Start the native game launcher:
 
 ```console
 .venv/bin/pu6e
 ```
 
-Valid game types are `fp` (Ultima VI: The False Prophet), `md` (Martian
-Dreams), and `se` (Savage Empire). Game assets are copyrighted and are not
-included.
+Use the cog beside Ultima VI, Martian Dreams, or The Savage Empire to choose
+that game's working directory. The launcher checks the original game files and
+saved-world data before revealing its **Launch editor** button, and remembers
+each game independently in `pu6e.conf`. Existing single-game configurations
+are detected automatically. Game assets are copyrighted and are not included.
 
 On Ubuntu systems using Qt's X11 platform plugin, install the required cursor
 library if it is absent:
