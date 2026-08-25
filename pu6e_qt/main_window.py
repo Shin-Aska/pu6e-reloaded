@@ -76,11 +76,15 @@ class MainWindow(QMainWindow):
         self.controller.saved.connect(self._mark_saved)
         self.controller.terrain_mode_changed.connect(self.update_tool_status)
         self.canvas.fatal_error.connect(self._show_render_error)
+        self.canvas.zoom_changed.connect(self._update_zoom)
 
     def _update_position(self, x: int, y: int, z: int) -> None:
         self.location_label.setText(f"X {x:03x}    Y {y:03x}    Z {z}")
         scale = render.scale_factor if hasattr(render, "scale_factor") else 1.0
-        self.zoom_label.setText(f"{scale:g}×")
+        self._update_zoom(scale)
+
+    def _update_zoom(self, scale: float) -> None:
+        self.zoom_label.setText(f"{scale * 100:g}%")
 
     def _select_location(self, x: int, y: int, z: int) -> None:
         point = obj.objects_at(x, y, z)

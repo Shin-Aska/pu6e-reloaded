@@ -8,6 +8,7 @@ from PySide6.QtWidgets import QDockWidget, QMainWindow, QWidget
 from pu6e_qt.controller import EditorController
 from pu6e_qt.inspectors import ObjectInspector, ObjectStack
 from pu6e_qt.minimap import WorldMinimap
+from pu6e_qt.quest_navigator import QuestNavigator
 from pu6e_qt.tiles import TileBrowser
 from pu6e_qt.tools import BookViewer, ChunkInspector
 
@@ -20,12 +21,14 @@ class EditorDocks:
     chunks: ChunkInspector
     books: BookViewer
     minimap: WorldMinimap
+    quests: QuestNavigator
     stack_dock: QDockWidget
     inspector_dock: QDockWidget
     tile_dock: QDockWidget
     chunk_dock: QDockWidget
     book_dock: QDockWidget
     minimap_dock: QDockWidget
+    quest_dock: QDockWidget
 
 
 def _dock(window: QMainWindow, title: str, widget: QWidget) -> QDockWidget:
@@ -47,6 +50,7 @@ def create_docks(window: QMainWindow, controller: EditorController) -> EditorDoc
     chunks = ChunkInspector(controller)
     books = BookViewer()
     minimap = WorldMinimap(controller)
+    quests = QuestNavigator(controller)
 
     stack_dock = _dock(window, "Object stack", stack)
     inspector_dock = _dock(window, "Object properties", inspector)
@@ -54,10 +58,14 @@ def create_docks(window: QMainWindow, controller: EditorController) -> EditorDoc
     chunk_dock = _dock(window, "Map chunk", chunks)
     book_dock = _dock(window, "Books", books)
     minimap_dock = _dock(window, "World map", minimap)
+    quest_dock = _dock(window, "Quests & NPCs", quests)
 
     window.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, stack_dock)
     window.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, minimap_dock)
     window.splitDockWidget(stack_dock, minimap_dock, Qt.Orientation.Vertical)
+    window.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, quest_dock)
+    window.tabifyDockWidget(stack_dock, quest_dock)
+    stack_dock.raise_()
     window.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, inspector_dock)
     window.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, tile_dock)
     window.splitDockWidget(inspector_dock, tile_dock, Qt.Orientation.Vertical)
@@ -76,10 +84,12 @@ def create_docks(window: QMainWindow, controller: EditorController) -> EditorDoc
         chunks,
         books,
         minimap,
+        quests,
         stack_dock,
         inspector_dock,
         tile_dock,
         chunk_dock,
         book_dock,
         minimap_dock,
+        quest_dock,
     )

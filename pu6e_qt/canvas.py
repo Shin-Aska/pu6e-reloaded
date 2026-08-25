@@ -54,6 +54,7 @@ def configure_opengl_format() -> QSurfaceFormat:
 
 class MapCanvas(QOpenGLWidget):
     fatal_error = Signal(str)
+    zoom_changed = Signal(float)
 
     def __init__(self, controller: EditorController, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -116,6 +117,7 @@ class MapCanvas(QOpenGLWidget):
             self.makeCurrent()
             render.Resize(*self._framebuffer_size(self.width(), self.height()))
             self.doneCurrent()
+        self.zoom_changed.emit(render.scale_factor)
         self.update()
 
     def set_coords(self, x: int, y: int, z: int) -> None:

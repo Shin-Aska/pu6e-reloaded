@@ -28,6 +28,7 @@ def workbench(
 
     class StubCanvas(QWidget):
         fatal_error = Signal(str)
+        zoom_changed = Signal(float)
 
         def __init__(self, controller: EditorController) -> None:
             super().__init__()
@@ -35,11 +36,13 @@ def workbench(
 
         def zoom(self, factor: float) -> None:
             renderer.scale_factor *= factor
+            self.zoom_changed.emit(renderer.scale_factor)
 
     game_dir = tmp_path / "fp"
     write_game_fixture(game_dir, "fp", "workbench")
     controller = EditorController()
     controller.load_game(game_dir, "fp")
+    renderer.scale_factor = 1.0
     monkeypatch.setattr(workbench_module, "MapCanvas", StubCanvas)
     window = workbench_module.MainWindow(controller)
     yield window
@@ -120,3 +123,50 @@ def test_workbench_reports_an_unsupported_opengl_context(
 
     assert errors == ["OpenGL ES does not support this renderer"]
     assert "OpenGL" in workbench.statusBar().currentMessage()
+
+
+def test_toolbar_uses_icon_only_shortcuts_with_undo_and_redo(workbench) -> None:
+    toolbar = workbench.actions.toolbar
+    named_actions = [action for action in toolbar.actions() if not action.isSeparator()]
+
+    assert toolbar.toolButtonStyle() == Qt.ToolButtonStyle.ToolButtonIconOnly
+    assert {"Save world", "Undo", "Redo", "Zoom in", "Zoom out"}.issubset(
+        {action.text() for action in named_actions}
+    )
+    assert all(not action.icon().isNull() for action in named_actions if action.text())
+
+
+def test_zoom_indicators_follow_toolbar_actions_immediately(workbench) -> None:
+    workbench.actions.zoom_out.trigger()
+
+    assert workbench.zoom_label.text() == "50%"
+    assert workbench.actions.zoom_selector.currentText() == "50%"
+
+
+def test_zoom_selector_applies_an_explicit_percentage(workbench) -> None:
+    workbench.actions.zoom_selector.setCurrentText("200%")
+
+    assert renderer.scale_factor == 2.0
+    assert workbench.zoom_label.text() == "200%"
+
+
+def test_level_selector_jumps_directly_between_surface_and_underworld(workbench) -> None:
+    workbench.controller.set_position(0x134, 0x16C, 0)
+
+    workbench.actions.level_selector.setCurrentIndex(3)
+
+    assert workbench.controller.position[2] == 3
+    assert "Underworld 3" in workbench.actions.level_selector.currentText()
+
+
+def test_level_selector_stays_synchronized_with_keyboard_navigation(workbench) -> None:
+    workbench.controller.change_level(2)
+
+    assert workbench.actions.level_selector.currentIndex() == 2
+
+
+def test_quest_browser_tabs_with_object_stack_without_hiding_the_minimap(workbench) -> None:
+    stack_tabs = workbench.tabifiedDockWidgets(workbench.docks.stack_dock)
+
+    assert workbench.docks.quest_dock in stack_tabs
+    assert workbench.docks.minimap_dock not in stack_tabs
