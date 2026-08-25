@@ -133,6 +133,11 @@ def test_profile_reports_case_mismatched_game_filename(
 
     profile = store.inspect(game, directory)
 
+    if (directory / expected_name).is_file():
+        assert profile.issue is None
+        assert profile.ready
+        return
+
     assert profile.issue is not None
     assert profile.issue.kind.value == "case_mismatch"
     assert expected_name in profile.issue.paths
