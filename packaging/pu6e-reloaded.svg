@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="pu6e Reloaded">
+  <rect x="10" y="10" width="236" height="236" rx="42" fill="#11151b"/>
+  <rect x="23" y="23" width="210" height="210" rx="32" fill="none" stroke="#d5a34a" stroke-width="3"/>
+  <path d="M45 150h38l21-37 25 27 28-51 51 61H45Z" fill="#405940"/>
+  <path d="M45 173h38l21-37 25 27 28-51 51 61H45Z" fill="#758a64"/>
+  <circle cx="181" cy="78" r="20" fill="#e0cf8f"/>
+  <path d="M70 199h116" stroke="#d5a34a" stroke-width="3" stroke-linecap="round"/>
+  <text x="128" y="218" fill="#f1eee7" font-family="Georgia, serif" font-size="25" text-anchor="middle">pu6e</text>
+</svg>

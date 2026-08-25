@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=pu6e Reloaded
+GenericName=Ultima World Editor
+Comment=Explore and edit the worlds of Ultima VI, Martian Dreams, and The Savage Empire
+Exec=pu6e-reloaded
+Icon=pu6e-reloaded
+Terminal=false
+Categories=Game;RolePlaying;
+StartupNotify=true

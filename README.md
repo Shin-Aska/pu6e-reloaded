@@ -56,6 +56,27 @@ include or grant permission to redistribute copyrighted game assets.
 PySide6 provides official prebuilt Qt 6 wheels. Installing pu6e does not
 require compiling the desktop toolkit from source.
 
+## Packaged downloads
+
+Tagged [GitHub Releases](https://github.com/Shin-Aska/pu6e-reloaded/releases)
+provide self-contained builds that do not require installing Python or `uv`:
+
+- Linux x86-64 AppImage: `pu6e-reloaded-VERSION-linux-x86_64.AppImage`.
+- Linux x86-64 portable ZIP: `pu6e-reloaded-VERSION-linux-x86_64.zip`.
+- Windows x86-64 standalone executable: `pu6e-reloaded-VERSION-windows-x86_64.exe`.
+- Windows x86-64 portable ZIP: `pu6e-reloaded-VERSION-windows-x86_64.zip`.
+
+On Linux, mark the AppImage executable before opening it:
+
+```console
+chmod +x pu6e-reloaded-*-linux-x86_64.AppImage
+./pu6e-reloaded-*-linux-x86_64.AppImage
+```
+
+The ZIP distributions contain an executable `pu6e-reloaded` application folder.
+Linux builds still need a compatible desktop OpenGL implementation; all builds
+require separately obtained original game files and a saved game.
+
 ## Install
 
 On Ubuntu 24.04 or Linux Mint 22.x, install the required system packages for
@@ -127,6 +148,17 @@ the virtual environment:
 uv sync
 .venv/bin/pytest
 ```
+
+Install the optional packaging tools and build the Linux distributions with:
+
+```console
+uv sync --locked --group packaging
+bash packaging/build-linux.sh
+```
+
+On a Windows machine, use `./packaging/build-windows.ps1` instead. GitHub Actions
+tests both operating systems, uploads all four distributions for every build,
+and publishes them with SHA-256 checksums whenever a `v*` tag is pushed.
 
 The original documentation and technical references are retained for historical
 reference.

@@ -1,0 +1,212 @@
+name: Test, package, and release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - v*
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: distributions-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  RELEASE_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+
+jobs:
+  test:
+    name: Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-22.04
+          - windows-2025
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Install uv and Python 3.14
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d
+        with:
+          python-version: "3.14"
+          enable-cache: true
+
+      - name: Install Linux desktop runtime dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libegl1 libgl1 libgl1-mesa-dri libglu1-mesa \
+            libxkbcommon-x11-0 libxcb-cursor0 libxcb-glx0 \
+            libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
+            libxcb-randr0 libxcb-render-util0 libxcb-shape0 \
+            libxcb-xinerama0 libxcb-xkb1 xvfb
+
+      - name: Install locked application dependencies
+        run: uv sync --locked
+
+      - name: Run Linux tests under a virtual desktop
+        if: runner.os == 'Linux'
+        run: xvfb-run --auto-servernum uv run --no-sync pytest -q
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+
+      - name: Run Windows tests with the offscreen Qt platform
+        if: runner.os == 'Windows'
+        run: uv run --no-sync pytest -q
+        env:
+          QT_QPA_PLATFORM: offscreen
+
+  build-linux:
+    name: Build Linux AppImage and portable ZIP
+    needs: test
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Install uv and Python 3.14
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d
+        with:
+          python-version: "3.14"
+          enable-cache: true
+
+      - name: Install AppImage and desktop build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            desktop-file-utils libegl1 libgl1 libgl1-mesa-dri \
+            libglu1-mesa libxkbcommon-x11-0 libxcb-cursor0 \
+            libxcb-glx0 libxcb-icccm4 libxcb-image0 \
+            libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 \
+            libxcb-shape0 libxcb-xinerama0 libxcb-xkb1 \
+            x11-utils xvfb zip
+
+      - name: Install locked packaging dependencies
+        run: uv sync --locked --group packaging
+
+      - name: Build the Linux distributions
+        run: bash packaging/build-linux.sh
+
+      - name: Launch the packaged Linux executable
+        run: xvfb-run --auto-servernum bash packaging/smoke-linux.sh dist/linux/pu6e-reloaded/pu6e-reloaded
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+
+      - name: Launch the packaged AppImage without requiring FUSE
+        run: xvfb-run --auto-servernum bash packaging/smoke-linux.sh dist/release/*.AppImage
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+          LIBGL_ALWAYS_SOFTWARE: "1"
+
+      - name: Validate the portable Linux ZIP
+        run: unzip -t dist/release/*-linux-x86_64.zip
+
+      - name: Upload the Linux distributions
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: linux-distributions
+          path: |
+            dist/release/*.AppImage
+            dist/release/*-linux-x86_64.zip
+          if-no-files-found: error
+
+  build-windows:
+    name: Build Windows executable and portable ZIP
+    needs: test
+    runs-on: windows-2025
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Install uv and Python 3.14
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d
+        with:
+          python-version: "3.14"
+          enable-cache: true
+
+      - name: Install locked packaging dependencies
+        run: uv sync --locked --group packaging
+
+      - name: Build the Windows distributions
+        shell: pwsh
+        run: ./packaging/build-windows.ps1
+
+      - name: Launch the portable Windows executable
+        shell: pwsh
+        run: ./packaging/smoke-windows.ps1 -Executable ./dist/windows/pu6e-reloaded/pu6e-reloaded.exe
+
+      - name: Launch the standalone Windows executable
+        shell: pwsh
+        run: |
+          $executable = Get-ChildItem ./dist/release/*-windows-x86_64.exe
+          ./packaging/smoke-windows.ps1 -Executable $executable.FullName
+
+      - name: Validate the portable Windows ZIP
+        shell: pwsh
+        run: |
+          $archive = Get-ChildItem ./dist/release/*-windows-x86_64.zip
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $contents = [System.IO.Compression.ZipFile]::OpenRead($archive.FullName)
+          try {
+            if (-not ($contents.Entries.FullName -match 'pu6e-reloaded\.exe$')) {
+              throw "The portable Windows ZIP does not contain the application."
+            }
+          } finally {
+            $contents.Dispose()
+          }
+
+      - name: Upload the Windows distributions
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: windows-distributions
+          path: |
+            dist/release/*-windows-x86_64.exe
+            dist/release/*-windows-x86_64.zip
+          if-no-files-found: error
+
+  release:
+    name: Publish the tagged GitHub release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs:
+      - build-linux
+      - build-windows
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download the Linux and Windows distributions
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          pattern: "*-distributions"
+          path: dist/release
+          merge-multiple: true
+
+      - name: Generate SHA-256 checksums
+        working-directory: dist/release
+        run: sha256sum ./*.AppImage ./*.exe ./*.zip > SHA256SUMS
+
+      - name: Publish downloadable release assets
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228
+        with:
+          generate_release_notes: true
+          files: |
+            dist/release/*.AppImage
+            dist/release/*.exe
+            dist/release/*.zip
+            dist/release/SHA256SUMS
+          fail_on_unmatched_files: true

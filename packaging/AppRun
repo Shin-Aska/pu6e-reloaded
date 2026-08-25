@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+app_directory="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+exec "$app_directory/usr/lib/pu6e-reloaded/pu6e-reloaded" "$@"
