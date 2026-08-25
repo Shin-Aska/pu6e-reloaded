@@ -8,44 +8,65 @@ def launcher_stylesheet() -> str:
         QWidget[objectName="pu6e-launcher"], QDialog[objectName="game-configurator"] {{
             background: {THEME.surface_canvas};
         }}
+        QWidget[objectName="atlas-world-rail"] {{
+            background: {THEME.surface_launcher_rail};
+            border-right: 1px solid {THEME.border_subtle};
+        }}
         QLabel[objectName="launcher-wordmark"] {{
             color: {THEME.text_primary};
-            font-size: 32px;
-            font-weight: 700;
-            letter-spacing: 1px;
+            font-family: Georgia, "Noto Serif", serif;
+            font-size: {THEME.launcher_brand_size}px;
+            font-weight: 600;
+            padding-left: {THEME.space_1}px;
         }}
-        QLabel[objectName="launcher-kicker"], QLabel[objectName="launcher-footer"],
+        QLabel[objectName="launcher-kicker"], QLabel[objectName="launcher-worlds-label"],
+        QLabel[objectName="launcher-footer"],
         QLabel[launcherRole="gameSetting"] {{
             color: {THEME.text_muted};
             font-size: {THEME.caption_size}px;
             letter-spacing: 1px;
+            padding-left: {THEME.space_1}px;
         }}
-        QLabel[objectName="launcher-description"] {{
-            color: {THEME.text_secondary};
-            font-size: {THEME.section_size}px;
+        QLabel[objectName="launcher-kicker"] {{
+            color: {THEME.accent_primary};
         }}
-        QFrame[launcherRole="gameCard"] {{
+        QPushButton[launcherRole="gameCard"] {{
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: {THEME.control_radius}px;
+            padding: 0;
+            text-align: left;
+        }}
+        QPushButton[launcherRole="gameCard"]:hover {{
             background: {THEME.surface_panel};
-            border: 1px solid {THEME.border_subtle};
-            border-radius: {THEME.panel_radius + THEME.space_1}px;
+            border-color: {THEME.border_subtle};
         }}
-        QFrame[launcherRole="gameCard"][launcherReady="true"] {{
-            border-color: {THEME.border_default};
+        QPushButton[launcherRole="gameCard"]:checked {{
+            background: {THEME.accent_wash};
+            border-color: {THEME.accent_pressed};
         }}
         QLabel[launcherRole="gameBadge"] {{
             background: {THEME.accent_wash};
-            border-radius: {THEME.panel_radius}px;
+            border-radius: {THEME.control_radius}px;
             color: {THEME.accent_primary};
-            font-size: {THEME.title_size}px;
-            font-weight: 700;
+            font-family: Georgia, "Noto Serif", serif;
+            font-size: {THEME.section_size}px;
+            font-weight: 600;
         }}
         QLabel[launcherRole="gameTitle"] {{
             color: {THEME.text_primary};
             font-size: {THEME.title_size}px;
             font-weight: 600;
         }}
-        QLabel[launcherRole="gameSubtitle"] {{
-            color: {THEME.text_secondary};
+        QLabel[launcherRole="gameRailTitle"] {{
+            background: transparent;
+            color: {THEME.text_primary};
+            font-size: {THEME.body_size}px;
+            font-weight: 550;
+        }}
+        QLabel[launcherRole="gameStatus"] {{
+            background: transparent;
+            font-size: {THEME.caption_size}px;
         }}
         QLabel[launcherRole="gameStatus"][launcherReady="true"] {{
             color: {THEME.status_success};
@@ -55,9 +76,42 @@ def launcher_stylesheet() -> str:
         }}
         QLabel[launcherRole="gameStatus"][launcherWarning="true"] {{
             color: {THEME.status_warning};
+            font-weight: 500;
+        }}
+        QLabel[launcherRole="worldSetting"], QLabel[launcherRole="worldOverline"] {{
+            background: transparent;
+            color: {THEME.accent_hover};
+            font-size: {THEME.caption_size}px;
+            letter-spacing: 1px;
+        }}
+        QLabel[launcherRole="worldTitle"] {{
+            background: transparent;
+            color: {THEME.text_primary};
+            font-family: Georgia, "Noto Serif", serif;
+            font-size: {THEME.launcher_world_size}px;
             font-weight: 600;
         }}
-        QLabel[launcherRole="gamePath"] {{
+        QLabel[launcherRole="worldSubtitle"] {{
+            background: transparent;
+            color: {THEME.text_secondary};
+            font-size: {THEME.launcher_subtitle_size}px;
+        }}
+        QLabel[launcherRole="worldDescription"] {{
+            background: transparent;
+            color: {THEME.text_secondary};
+            font-size: {THEME.body_size}px;
+        }}
+        QLabel[launcherRole="worldStatus"][launcherReady="true"] {{
+            background: transparent;
+            color: {THEME.status_success};
+        }}
+        QLabel[launcherRole="worldStatus"][launcherWarning="true"] {{
+            background: transparent;
+            color: {THEME.status_warning};
+            font-weight: 600;
+        }}
+        QLabel[launcherRole="worldPath"] {{
+            background: transparent;
             color: {THEME.text_muted};
             font-size: {THEME.caption_size}px;
         }}
@@ -67,8 +121,8 @@ def launcher_stylesheet() -> str:
             color: {THEME.surface_canvas};
             font-size: {THEME.body_size}px;
             font-weight: 600;
-            min-height: 30px;
-            padding: {THEME.space_2}px {THEME.space_4}px;
+            min-height: {THEME.space_7}px;
+            padding: {THEME.space_2}px {THEME.space_5}px;
         }}
         QPushButton[launcherRole="launchButton"]:hover {{
             background: {THEME.accent_hover};
@@ -77,20 +131,34 @@ def launcher_stylesheet() -> str:
             background: {THEME.surface_pressed};
             color: {THEME.text_disabled};
         }}
-        QToolButton[launcherRole="settingsButton"] {{
+        QPushButton[launcherRole="secondaryButton"], QToolButton[launcherRole="stageSettings"] {{
+            background: {THEME.surface_panel};
             border: 1px solid {THEME.border_default};
-            border-radius: {THEME.panel_radius}px;
-            padding: {THEME.space_2}px;
-        }}
-        QToolButton[launcherRole="warningButton"] {{
-            background: {THEME.accent_wash};
-            border: 1px solid {THEME.status_warning};
-            border-radius: {THEME.panel_radius}px;
-            color: {THEME.status_warning};
-            font-weight: 600;
+            border-radius: {THEME.control_radius}px;
+            color: {THEME.text_secondary};
+            min-height: {THEME.space_7}px;
             padding: {THEME.space_2}px {THEME.space_3}px;
         }}
+        QToolButton[launcherRole="settingsButton"], QToolButton[launcherRole="warningButton"] {{
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: {THEME.control_radius}px;
+            padding: {THEME.space_1}px;
+        }}
+        QToolButton[launcherRole="settingsButton"]:hover,
         QToolButton[launcherRole="warningButton"]:hover {{
+            background: {THEME.surface_hover};
+            border-color: {THEME.border_default};
+        }}
+        QToolButton[launcherRole="stageWarning"] {{
+            background: {THEME.surface_panel};
+            border: 1px solid {THEME.status_warning};
+            border-radius: {THEME.control_radius}px;
+            color: {THEME.status_warning};
+            font-weight: 500;
+            padding: {THEME.space_2}px {THEME.space_3}px;
+        }}
+        QToolButton[launcherRole="stageWarning"]:hover {{
             background: {THEME.surface_hover};
             color: {THEME.text_primary};
         }}

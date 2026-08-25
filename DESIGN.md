@@ -11,6 +11,12 @@ brass color story and DOS-era monospace coordinates belong specifically to
 Ultima. The signature moment is a vivid, pixel-perfect map surrounded by
 calm, instrument-like navigation and object-inspection panels.
 
+The launcher follows the approved **Atlas** direction: a quiet, narrow world
+library on the left and one cinematic, edge-to-edge illustrated world on the
+right. Selecting Britannia, Mars, or Eodon changes the landscape, atmosphere,
+story, availability, and primary action together. The composition is a native
+desktop game launcher, never a vertical stack of web-like settings cards.
+
 ## 2. Color
 
 | Role | Token | Value | Usage |
@@ -33,6 +39,19 @@ calm, instrument-like navigation and object-inspection panels.
 | Success | `status.success` | `#75b887` | Saved or ready status |
 | Warning | `status.warning` | `#e0b35f` | Terrain-edit warning |
 | Error | `status.error` | `#df7771` | Invalid or failed operations |
+| Launcher rail | `surface.launcher_rail` | `#0d1116` | Atlas world-library rail |
+| Britannia sky | `scene.britannia.sky` | `#435d60` | Britannia atmosphere |
+| Britannia horizon | `scene.britannia.horizon` | `#293d3e` | Britannia mountains |
+| Britannia foreground | `scene.britannia.foreground` | `#131e20` | Britannia castle silhouette |
+| Britannia light | `scene.britannia.light` | `#dccca2` | Britannia moon and mist |
+| Mars sky | `scene.mars.sky` | `#a75c3e` | Martian atmosphere |
+| Mars horizon | `scene.mars.horizon` | `#653a35` | Martian ridges |
+| Mars foreground | `scene.mars.foreground` | `#24181b` | Martian observatory |
+| Mars light | `scene.mars.light` | `#efbd86` | Martian sun and haze |
+| Eodon sky | `scene.eodon.sky` | `#758a64` | Eodon jungle atmosphere |
+| Eodon horizon | `scene.eodon.horizon` | `#405940` | Eodon tree line |
+| Eodon foreground | `scene.eodon.foreground` | `#162119` | Eodon prehistoric silhouette |
+| Eodon light | `scene.eodon.light` | `#e0cf8f` | Eodon sun and jungle mist |
 
 Rules: the brass accent denotes selection, focus, or meaningful actions; it is
 never a decorative wash over the map. Original game art retains its own palette.
@@ -48,9 +67,14 @@ All Qt stylesheet colors are sourced from named theme tokens.
 | Emphasis | 13 px | 550 | Active tabs and highlighted labels |
 | Caption | 11 px | 500 | Helper text and section labels |
 | Coordinates | 13 px | 500 | Hex locations, object IDs, tile values |
+| Launcher wordmark | 26 px | 650 | Atlas product signature |
+| Launcher world title | 42 px | 600 | Selected-world cinematic heading |
+| Launcher world subtitle | 16 px | 400 | Selected game edition |
 
 - Primary family: `IBM Plex Sans`, `Noto Sans`, `Ubuntu`, sans-serif.
 - Technical family: `IBM Plex Mono`, `JetBrains Mono`, `DejaVu Sans Mono`, monospace.
+- Cinematic launcher headings: `Georgia`, `Noto Serif`, serif; the rest of the
+  launcher keeps the existing primary and technical families.
 - All object identifiers, coordinates, level indicators, and byte fields use
   the technical family. Native Qt application font scaling remains enabled.
 - Label casing is sentence case; hexadecimal coordinates use lowercase digits.
@@ -65,6 +89,8 @@ All Qt stylesheet colors are sourced from named theme tokens.
 | `space.4` | 16 px | Dock and section padding |
 | `space.5` | 20 px | Comfortable editor grouping |
 | `space.6` | 24 px | Major panel separation |
+| `space.7` | 32 px | Launcher hero copy separation |
+| `space.8` | 40 px | Launcher stage outer padding |
 
 The window is a native `QMainWindow` shell: a fixed menu/toolbar above, a
 fluid central OpenGL map, independently scrolling left/right docks, and a
@@ -73,7 +99,40 @@ or tile library owns its own bounded scroll region. Docks can hide, resize,
 float, and tabify; narrow desktop windows prioritize the map and allow docks
 to be hidden. Preferred initial window size is at least 1120 x 760.
 
+The Atlas launcher uses a native horizontal shell, a fixed 232 px world rail,
+and a flexible illustrated stage. Its minimum desktop size is 860 x 560;
+the preferred opening size is 1040 x 660. Hero controls stay visible at the
+minimum size, world titles may wrap once, and long game paths elide instead of
+overlapping the action row.
+
 ## 5. Reusable components
+
+### Atlas world selector
+
+- Structure: native clickable selection row with a brass game sigil, game
+  title, compact readiness text, and an independently reachable settings cog.
+- Variants: Britannia, Mars, Eodon.
+- Spacing: `space.2` inner rhythm; `space.3` row padding.
+- States: normal, hover, keyboard focus, selected, ready, unavailable.
+- Accessibility: native keyboard focus, descriptive selection/configuration
+  names, text-based availability, and actionable diagnostic tooltips.
+- Layout: fixed-width left rail; exactly one world is selected at a time.
+
+### Atlas illustrated world stage
+
+- Structure: full-bleed world-specific painted sky, layered terrain silhouette,
+  distinctive landmark, legible dark foreground veil, setting label, game
+  title/subtitle, short world description, launch/configuration controls, and
+  visible readiness or recovery guidance.
+- Variants: Britannia moon/castle, Mars sun/observatory, Eodon sun/jungle.
+- Spacing: `space.8` stage padding; `space.4` action gaps; `space.6` between
+  story and controls.
+- States: selected ready, selected unavailable, keyboard focus, configure,
+  launch failure, and recovery after files are repaired.
+- Accessibility: the artwork is decorative; all world identity, readiness,
+  recovery detail, and actions remain available as real native controls/text.
+- Layout: fluid right stage; the primary action remains in the lower reading
+  zone and diagnostics do not clip at the minimum window size.
 
 ### Workbench toolbar
 
@@ -145,11 +204,20 @@ panel `#171a1f`, elevated input `#1e2228`, hover `#272c34`. Controls use a
 drop-shadow-heavy surfaces, decorative gradients, or unrelated accent colors.
 The native OpenGL map remains sharp and unfiltered.
 
+Exception: the Atlas selected-world stage intentionally uses authored,
+world-specific atmospheric gradients, a softly lit celestial body, layered
+silhouette depth, and a dark reading veil. These are illustrated game artwork,
+not decorative gradients applied to the editor's functional controls.
+
 ## 8. Accessibility constraints and accepted debt
 
 - Primary text targets at least WCAG AA 4.5:1 contrast on its surface.
 - Keyboard users can reach menus, docks, object trees, fields, and save actions.
 - Focus and selected states use both contrast and the brass accent.
 - Status and editing modes are stated in text, not communicated by color alone.
+- Each launcher world is keyboard selectable, exposes its availability in text,
+  and retains an independently labeled configuration action.
+- Unavailable worlds show a visible recovery reason and diagnostic tooltip;
+  world selection never depends on color or mouse-only interaction.
 - Desktop-first native editor: no mobile, browser, or web-Lighthouse claim.
 - No accepted accessibility debt at the time this system was defined.

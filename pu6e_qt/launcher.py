@@ -4,13 +4,14 @@ import struct
 from typing import Final
 
 from PySide6.QtCore import QEvent, QObject, Qt
-from PySide6.QtWidgets import QLabel, QMessageBox, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QMessageBox, QVBoxLayout, QWidget
 
 import mapedit_gl as renderer
 from pu6e_qt.application import initialize_editor
-from pu6e_qt.game_profiles import GAMES, GameProfileStore
+from pu6e_qt.game_profiles import GAMES, GameProfile, GameProfileStore
 from pu6e_qt.launcher_cards import GameCard
 from pu6e_qt.launcher_dialog import GameConfigurationDialog
+from pu6e_qt.launcher_stage import WorldStage
 from pu6e_qt.launcher_style import launcher_stylesheet
 from pu6e_qt.main_window import MainWindow
 from pu6e_qt.theme import THEME
@@ -24,51 +25,73 @@ class LauncherWindow(QWidget):
         self.store = store
         self.cards: dict[str, GameCard] = {}
         self.editor_window: MainWindow | None = None
+        self.selected_game = GAMES[0].key
         self.setObjectName("pu6e-launcher")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setWindowTitle("pu6e Reloaded — Choose your world")
-        self.setMinimumSize(560, 680)
-        self.resize(660, 760)
+        self.setMinimumSize(860, 560)
+        self.resize(1040, 660)
         self.setStyleSheet(launcher_stylesheet())
 
-        kicker = QLabel("ULTIMA WORLD EDITOR", self)
-        kicker.setObjectName("launcher-kicker")
-        wordmark = QLabel("pu6e Reloaded", self)
-        wordmark.setObjectName("launcher-wordmark")
-        description = QLabel("Choose a world to explore and edit.", self)
-        description.setObjectName("launcher-description")
+        rail = QWidget(self)
+        rail.setObjectName("atlas-world-rail")
+        rail.setFixedWidth(THEME.launcher_rail_width)
 
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(44, 40, 44, 32)
-        layout.setSpacing(THEME.space_2)
-        layout.addWidget(kicker)
-        layout.addWidget(wordmark)
-        layout.addWidget(description)
-        layout.addSpacing(THEME.space_5)
+        wordmark = QLabel("pu6e.", rail)
+        wordmark.setObjectName("launcher-wordmark")
+        kicker = QLabel("WORLD EDITOR", rail)
+        kicker.setObjectName("launcher-kicker")
+        worlds = QLabel("YOUR WORLDS", rail)
+        worlds.setObjectName("launcher-worlds-label")
+
+        rail_layout = QVBoxLayout(rail)
+        rail_layout.setContentsMargins(THEME.space_3, THEME.space_7, THEME.space_3, THEME.space_5)
+        rail_layout.setSpacing(THEME.space_1)
+        rail_layout.addWidget(wordmark)
+        rail_layout.addWidget(kicker)
+        rail_layout.addSpacing(THEME.space_7)
+        rail_layout.addWidget(worlds)
+        rail_layout.addSpacing(THEME.space_2)
 
         for specification in GAMES:
-            card = GameCard(store.profile(specification.key), self)
+            card = GameCard(store.profile(specification.key), rail)
             card.configure_requested.connect(self.configure_game)
-            card.launch_requested.connect(self.launch_game)
+            card.selection_requested.connect(self.select_game)
             self.cards[specification.key] = card
-            layout.addWidget(card)
-            layout.addSpacing(THEME.space_2)
+            rail_layout.addWidget(card)
+            rail_layout.addSpacing(THEME.space_1)
 
-        layout.addStretch()
-        footer = QLabel("YOUR GAME DATA STAYS ON THIS COMPUTER", self)
+        rail_layout.addStretch()
+        footer = QLabel("3 worlds in your library", rail)
         footer.setObjectName("launcher-footer")
-        footer.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(footer)
+        rail_layout.addWidget(footer)
+
+        self.stage = WorldStage(store.profile(self.selected_game), self)
+        self.stage.configure_requested.connect(self.configure_game)
+        self.stage.launch_requested.connect(self.launch_game)
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        layout.addWidget(rail)
+        layout.addWidget(self.stage, 1)
+        self.select_game(self.selected_game)
+
+    def select_game(self, game: str) -> None:
+        self.selected_game = game
+        for key, card in self.cards.items():
+            card.setChecked(key == game)
+        self.stage.update_profile(self.store.profile(game))
 
     def configure_game(self, game: str) -> None:
         dialog = GameConfigurationDialog(self.store, game, self)
         if dialog.exec() == dialog.DialogCode.Accepted:
-            self.cards[game].update_profile(self.store.profile(game))
+            self._refresh_profile(self.store.profile(game))
 
     def launch_game(self, game: str) -> None:
         profile = self.store.profile(game)
         if not profile.ready:
-            self.cards[game].update_profile(profile)
+            self._refresh_profile(profile)
             issue = profile.issue
             assert issue is not None
             QMessageBox.critical(
@@ -92,7 +115,7 @@ class LauncherWindow(QWidget):
             controller = initialize_editor(self.store.config_path)
         except (OSError, ValueError, struct.error) as error:
             refreshed_profile = self.store.profile(game)
-            self.cards[game].update_profile(refreshed_profile)
+            self._refresh_profile(refreshed_profile)
             QMessageBox.critical(
                 self,
                 f"{profile.specification.title} could not launch",
@@ -122,7 +145,12 @@ class LauncherWindow(QWidget):
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:
         if watched is self.editor_window and event.type() == QEvent.Type.Close:
-            for game, card in self.cards.items():
-                card.update_profile(self.store.profile(game))
+            for game in self.cards:
+                self._refresh_profile(self.store.profile(game))
             self.show()
         return super().eventFilter(watched, event)
+
+    def _refresh_profile(self, profile: GameProfile) -> None:
+        self.cards[profile.specification.key].update_profile(profile)
+        if profile.specification.key == self.selected_game:
+            self.stage.update_profile(profile)

@@ -95,7 +95,7 @@ def test_game_profiles_import_legacy_configuration_and_preserve_display_settings
     assert GameProfileStore(configuration_path).profile("fp").ready
 
 
-def test_launcher_only_reveals_launch_buttons_for_ready_games(
+def test_launcher_only_enables_the_stage_launch_action_for_ready_games(
     tmp_path: Path,
     launcher_app: QApplication,
 ) -> None:
@@ -109,9 +109,10 @@ def test_launcher_only_reveals_launch_buttons_for_ready_games(
 
     launcher = LauncherWindow(store)
 
-    assert not launcher.cards["fp"].launch_button.isHidden()
-    assert launcher.cards["md"].launch_button.isHidden()
-    assert launcher.cards["se"].launch_button.isHidden()
+    assert launcher.stage.launch_button.isEnabled()
+    assert launcher.cards["fp"].property("launcherReady") is True
+    assert launcher.cards["md"].property("launcherReady") is False
+    assert launcher.cards["se"].property("launcherReady") is False
     assert all(card.settings_button.isEnabled() for card in launcher.cards.values())
     launcher.close()
 
@@ -183,7 +184,8 @@ def test_launcher_opens_selected_game_in_editor(
     monkeypatch.setattr(launcher_module, "MainWindow", StubEditor)
     launcher = launcher_module.LauncherWindow(store)
 
-    launcher.cards["se"].launch_button.click()
+    launcher.cards["se"].click()
+    launcher.stage.launch_button.click()
 
     assert Config.gametype == "se"
     assert launcher.editor_window is not None

@@ -31,7 +31,7 @@ def _profile(
 def _assert_unavailable_card(
     card: GameCard, issue: GameProfileIssue, status: str | None = None
 ) -> None:
-    assert card.launch_button.isHidden()
+    assert card.property("launcherReady") is False
     assert not card.availability_button.isHidden()
     assert card.status_label.property("launcherWarning") is True
     assert card.status_label.toolTip() == card.availability_button.toolTip()
@@ -187,7 +187,7 @@ def test_game_card_resets_warning_after_profile_becomes_ready(
     card.update_profile(ready)
 
     # Then: launch is restored and neither tooltip retains stale diagnostics.
-    assert not card.launch_button.isHidden()
+    assert card.property("launcherReady") is True
     assert card.availability_button.isHidden()
     assert card.status_label.toolTip() == ""
     assert card.availability_button.toolTip() == ""
