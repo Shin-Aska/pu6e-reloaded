@@ -1,8 +1,10 @@
 # Using pu6e Reloaded
 
 pu6e is a world editor for **Ultima VI: The False Prophet**, **Martian
-Dreams**, and **The Savage Empire**. It edits the original game data and saved
-object files in place. Read the backup guidance below before making changes.
+Dreams**, and **The Savage Empire**. Its native PySide6/Qt 6 desktop workbench
+uses a compatibility-profile OpenGL map and dockable object, tile, chunk, and
+book tools. It writes original game data and saved-object files when you
+explicitly save. Read the backup guidance below before making changes.
 
 ## 1. Prepare a safe game-data directory
 
@@ -29,37 +31,28 @@ while it or a cloud-save client is running.
 
 ## 2. Install
 
-Create a Python 3.14 virtual environment from the repository root:
-
-### Windows (PowerShell)
-
-```powershell
-py -3.14 -m venv .venv
-.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install .
-```
-
-### macOS or Linux
+From the repository root, use host `uv` to create a Python 3.14 environment
+and install the project:
 
 ```console
-python3.14 -m venv .venv
-. .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install .
+uv venv --python 3.14
+uv sync
 ```
 
-wxPython may need to compile from source on Linux. On Ubuntu 24.04, install its
-build prerequisites first:
+PySide6 is installed as an official prebuilt Qt 6 wheel; no desktop-toolkit
+source compilation is needed. The application needs a real desktop OpenGL
+implementation with compatibility-profile support; it is not a terminal-only
+program.
+
+On Ubuntu systems running Qt through X11, install the Qt platform plugin's
+cursor dependency when it is not already present:
 
 ```console
-sudo apt update
-sudo apt install build-essential libgtk-3-dev libsdl2-dev libnotify-dev \
-    freeglut3-dev libwebkit2gtk-4.1-dev libsecret-1-dev
+sudo apt install libxcb-cursor0
 ```
 
-The editor also needs a working desktop OpenGL implementation. It is not a
-terminal-only application.
+The current checked-out `.venv` may already run through a localized workaround,
+but the system package is the reliable setup for a fresh environment.
 
 ## 3. Configure a game
 
@@ -97,26 +90,31 @@ directory if you want the coordinate and grid-number overlays.
 
 ## 4. Start the editor
 
-With the virtual environment active, run this from the directory containing
-`pu6e.conf`:
+Run the installed editor from the directory containing `pu6e.conf`:
 
 ```console
-pu6e
+.venv/bin/pu6e
 ```
 
-For an editable source checkout, this is equivalent to:
+For development checks, use the same virtual environment rather than a bare
+host Python:
 
 ```console
-python pu6e.py
+.venv/bin/pytest
 ```
 
-The initial view is centered near Lord British's castle at hexadecimal world
-coordinates `(134, 16c, 0)`.
+The Qt workbench keeps the compatibility-profile OpenGL map in the center,
+with dockable object stack and properties, tile browser, chunk inspector, and
+read-only book viewer around it. Docks can be resized, hidden, floated, or
+tabified. The initial view is centered near Lord British's castle at hexadecimal
+world coordinates `(134, 16c, 0)`.
 
 ## 5. Navigate the map
 
-Click the map before using keyboard shortcuts so the canvas has focus.
-Coordinates shown by the editor are hexadecimal.
+Click the map before using map-navigation shortcuts so the canvas has focus.
+Coordinates shown by the editor are hexadecimal. Menus, docks, trees, and
+fields are keyboard reachable; use normal Qt focus navigation to move between
+them, then return focus to the map for map controls.
 
 | Input | Action |
 | --- | --- |
@@ -134,8 +132,8 @@ On Windows, enable Num Lock for numeric-keypad navigation.
 
 ### Select a location
 
-Left-click a tile to select it. pu6e prints its coordinates, terrain name, and
-objects to the console and updates the Stack, Chunk, and Tile editors.
+Left-click a tile to select it. pu6e updates the coordinate status and its
+object-stack, map-chunk, and tile-library tools.
 
 ### Move or copy objects
 
@@ -148,10 +146,10 @@ objects to the console and updates the Stack, Chunk, and Tile editors.
 
 There are two terrain workflows:
 
-1. Enable **Options → Edit Terrain**, then left-drag a background tile to copy
+1. Enable **Tools → Edit terrain**, then left-drag a background tile to copy
    it to another position. Disable object display if an object blocks the
    desired source tile.
-2. Open **Window → Tile Viewer**, select a map tile numbered 0–255, then
+2. Open **Window → Tile library**, select a map tile numbered 0–255, then
    right-click or right-drag on the map to paint it.
 
 The Tile Viewer can display all 2,048 tiles, but only tiles 0–255 are valid as
@@ -166,7 +164,9 @@ Shift+left-drag copies the source map chunk to the destination chunk position.
 | Shortcut | Action |
 | --- | --- |
 | `Ctrl+S` | Save objects, NPCs, map, and chunks |
-| `Q` | Quit |
+| `Ctrl+Z` | Undo the most recent supported edit |
+| `Ctrl+Y` | Redo the most recently undone supported edit |
+| `Ctrl+Q` | Quit |
 | `A` | Toggle animated tiles |
 | `P` | Toggle palette rotation |
 | `H` | Toggle hybrid-tile animation |
@@ -175,20 +175,22 @@ Shift+left-drag copies the source map chunk to the destination chunk position.
 | `L` | Toggle center coordinates |
 | `F` | Toggle fullscreen |
 | `Ctrl+T` | Toggle terrain-edit mode |
-| `S` | Toggle Stack Editor |
-| `T` | Toggle Tile Viewer |
-| `C` | Toggle Chunk Editor |
+| `S` | Toggle Object stack |
+| `T` | Toggle Tile library |
+| `C` | Toggle Map chunk |
 | `Ctrl+G` | Open Go To |
 
-The same features are available from the **File**, **View**, **Options**, and
-**Window** menus.
+The same features are available from the workbench **File**, **Edit**, **View**,
+**Tools**, and **Window** menus. Shortcut availability follows the focused
+tool, and disabled Undo or Redo means there is no supported change to apply.
 
 ## 8. Auxiliary editors
 
-### Stack Editor
+### Object stack and inspector
 
-The Stack Editor shows every object at the selected location, from bottom to
-top, with contained objects nested below their container.
+The Object Stack dock shows every object at the selected location, from bottom
+to top, with contained objects nested below their container. Selecting an
+object updates the adjacent inspector.
 
 | Key | Action |
 | --- | --- |
@@ -199,15 +201,15 @@ top, with contained objects nested below their container.
 | `B` or `Ctrl+V` | Paste into selected object as a container |
 | `N` or `Insert` | Create the default object on the clipboard |
 | `Delete` | Delete selection |
-| `S` or `Escape` | Close Stack Editor |
+| `S` | Toggle the object-stack tool |
 
 An object disappears from the clipboard after paste because game objects must
 be unique. To create repeated copies, copy and paste repeatedly. Do not leave
 an Ultima VI egg container empty; the original game can crash when loading it.
 
-### Object Editor
+### Object inspector
 
-Selecting an object in the Stack Editor exposes:
+Selecting an object in the stack exposes:
 
 - **Type:** base object number.
 - **Frame:** visual state or orientation.
@@ -219,20 +221,20 @@ Selecting an object in the Stack Editor exposes:
 Make small changes and test them in a disposable game copy. Type, quality, and
 status values are game-format fields, not guarded gameplay-level settings.
 
-### Chunk Editor
+### Chunk inspector
 
 Selecting a map location shows its current 8×8 chunk. Change the chunk number
 to replace that map location with another existing chunk.
 
-### Tile Viewer
+### Tile browser
 
 The viewer displays map and object tiles and supplies the current tile for
-right-button terrain painting. Press `T` or Escape to close it.
+right-button terrain painting. Press `T` to toggle its visibility.
 
-### Book Editor
+### Book viewer
 
-The Book Editor displays Ultima VI book text by book number. Martian Dreams
-and Savage Empire book formats are not decoded and appear empty.
+The read-only Book Viewer displays Ultima VI book text by book number. Martian
+Dreams and Savage Empire book formats are not decoded and appear empty.
 
 ## 9. Save safely
 
@@ -272,23 +274,24 @@ into the working game's `savegame` directory.
 The game directory lacks `u6.ch`. This is expected for Worlds of Ultima. Copy
 that file from an owned Ultima VI installation if desired.
 
-### OpenGL or blank-window errors
+### OpenGL, blank-window, or compatibility-context errors
 
-Update the graphics driver and verify that desktop OpenGL works. Linux users
-in containers or remote shells must forward a display and provide GLX or an
-equivalent OpenGL context.
+Update the graphics driver and verify that desktop OpenGL can create a
+compatibility-profile context. Linux users in containers or remote shells must
+forward a display and provide GLX or an equivalent compatible OpenGL context.
+Wayland-only or software-only sessions may need an X11/GLX-capable desktop
+session for this fixed-function renderer.
 
-### wxPython installation takes a long time
+### Qt cannot load the `xcb` platform plugin
 
-Linux often builds wxPython from source for a new Python release. Install the
-GTK development packages listed above and allow the wheel build to finish, or
-build the wheel once and reuse it for machines with the same platform and
-Python version.
+On Ubuntu, install the missing X11 cursor dependency and restart the editor:
 
-### Deprecation warnings from wxPython
+```console
+sudo apt install libxcb-cursor0
+```
 
-Some event bindings retain wxPython Classic-compatible call syntax. They are
-warnings, not save or rendering failures; migration to `Bind()` is ongoing.
+The repository's current `.venv` may already have a localized workaround, but
+new environments should use the system dependency.
 
 ## Historical reference
 

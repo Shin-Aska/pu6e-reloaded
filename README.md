@@ -5,35 +5,50 @@ A Python 3.14 port of Jim Ursetto's **pu6e 0.6.0**, a world editor for
 published at [3e8.org](https://3e8.org/hacks/ultima6/) in 2003.
 
 The historical source and documentation are retained in this repository. The
-runtime has been updated from Python 2 and wxPython Classic to Python 3.14,
-wxPython Phoenix, NumPy, and current PyOpenGL. The obsolete SWIG LZW extension
-has been replaced with a memory-safe pure-Python decoder. The old C sources are
-kept for historical reference but are not part of the package build.
+active desktop runtime uses Python 3.14, native PySide6/Qt 6, NumPy, and
+current PyOpenGL. The obsolete SWIG LZW extension has been replaced with a
+memory-safe pure-Python decoder. The old sources are kept for historical
+reference and are not part of the active package build.
 
 ## Requirements
 
 - Python 3.14
-- A desktop OpenGL implementation
-- GTK 3 development libraries on Linux (wxPython is built from source)
+- [uv](https://docs.astral.sh/uv/) on the host machine
+- A desktop OpenGL implementation that supports a compatibility-profile context
 - The original game data for one of the supported games
+
+PySide6 provides official prebuilt Qt 6 wheels. Installing pu6e does not
+require compiling the desktop toolkit from source.
 
 ## Install
 
-Create and activate a virtual environment, then run:
+Create the environment and install the locked project dependencies from the
+repository root:
 
 ```console
-python -m pip install .
+uv venv --python 3.14
+uv sync
 ```
 
-Set `gamedir` and `gametype` in `pu6e.conf`, then launch the editor:
+Set `gamedir` and `gametype` in `pu6e.conf`, then launch the installed editor:
 
 ```console
-pu6e
+.venv/bin/pu6e
 ```
 
 Valid game types are `fp` (Ultima VI: The False Prophet), `md` (Martian
 Dreams), and `se` (Savage Empire). Game assets are copyrighted and are not
 included.
+
+On Ubuntu systems using Qt's X11 platform plugin, install the required cursor
+library if it is absent:
+
+```console
+sudo apt install libxcb-cursor0
+```
+
+The current checked-out `.venv` may already run through a localized workaround;
+installing the system library is the reliable setup for a fresh environment.
 
 For game-data preparation, configuration examples, navigation, editing,
 keyboard shortcuts, safe saving, and troubleshooting, see the
@@ -41,11 +56,12 @@ keyboard shortcuts, safe saving, and troubleshooting, see the
 
 ## Development
 
-Install the project and pytest, then run the test suite:
+Sync the development environment with host `uv`, then run the test suite from
+the virtual environment:
 
 ```console
-python -m pip install -e . pytest
-python -m pytest
+uv sync
+.venv/bin/pytest
 ```
 
 ## License
