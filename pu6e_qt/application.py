@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import configparser
 from dataclasses import dataclass
 from pathlib import Path
 import sys
@@ -12,15 +13,24 @@ from pu6e_qt.controller import EditorController
 
 _CONFIG_PATH: Final = Path("pu6e.conf")
 _INITIAL_POSITION: Final = (0x134, 0x16C, 0)
-_MINIMUM_WINDOW_SIZE: Final = (1120, 760)
-
-
 @dataclass(frozen=True, slots=True)
 class ConfigurationFileError(FileNotFoundError):
     path: Path
 
     def __str__(self) -> str:
         return f"required configuration file is missing: {self.path}"
+
+
+@dataclass(frozen=True, slots=True)
+class MalformedConfigurationError(ValueError):
+    path: Path
+    cause: str
+
+    def __str__(self) -> str:
+        return (
+            f"configuration file is malformed: {self.path}: {self.cause}. "
+            "Repair the [pu6e] settings and try again."
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,7 +75,10 @@ def read_configuration(config_path: Path) -> RuntimeConfiguration:
     if not config_path.is_file():
         raise ConfigurationFileError(config_path)
 
-    Config.read(str(config_path))
+    try:
+        Config.read(str(config_path))
+    except (configparser.Error, ValueError) as error:
+        raise MalformedConfigurationError(config_path, str(error)) from error
     game_directory = Path(Config.gamedir)
     if not game_directory.is_dir():
         raise GameDirectoryError(game_directory)
@@ -103,16 +116,24 @@ def main() -> None:
     configure_opengl_format()
 
     from PySide6.QtWidgets import QApplication
-    from pu6e_qt.main_window import MainWindow
+    from pu6e_qt.game_profiles import GameProfileStore
+    from pu6e_qt.launcher import LauncherWindow
     from pu6e_qt.theme import apply_theme
 
     application = QApplication(sys.argv)
     apply_theme(application)
-    controller = initialize_editor()
-    window = MainWindow(controller)
-    window.resize(
-        max(renderer.screen_width, _MINIMUM_WINDOW_SIZE[0]),
-        max(renderer.screen_height, _MINIMUM_WINDOW_SIZE[1]),
-    )
+    try:
+        store = GameProfileStore(_CONFIG_PATH)
+    except configparser.Error as error:
+        from PySide6.QtWidgets import QMessageBox
+
+        configuration_error = MalformedConfigurationError(_CONFIG_PATH, str(error))
+        QMessageBox.critical(
+            None,
+            "Configuration error",
+            f"Repair the configuration file at {_CONFIG_PATH}: {configuration_error.cause}",
+        )
+        return
+    window = LauncherWindow(store)
     window.show()
     application.exec()

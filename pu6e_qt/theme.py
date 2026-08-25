@@ -89,6 +89,12 @@ def _stylesheet(tokens: ThemeTokens) -> str:
             font-family: "IBM Plex Sans", "Noto Sans", "Ubuntu", sans-serif;
             font-size: {tokens.body_size}px;
         }}
+        QToolTip {{
+            background-color: {tokens.surface_elevated};
+            color: {tokens.text_primary};
+            border: 1px solid {tokens.border_default};
+            padding: {tokens.space_2}px;
+        }}
         QMainWindow {{ background: {tokens.surface_canvas}; }}
         QDockWidget {{ color: {tokens.text_primary}; }}
         QDockWidget::title {{
