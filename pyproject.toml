@@ -13,15 +13,18 @@ authors = [{name = "Jim Ursetto"}]
 dependencies = [
   "numpy>=2.2",
   "PyOpenGL>=3.1.9",
-  "wxPython>=4.3.1",
+  "PySide6>=6.11,<7",
 ]
 
 [project.scripts]
 pu6e = "pu6e:main"
 
+[dependency-groups]
+dev = ["pytest>=9"]
+
 [tool.setuptools]
-packages = ["U6"]
-py-modules = ["Pseudohash", "fastgl", "mapedit_gl", "mapedit_wxgl", "pu6e"]
+packages = ["U6", "pu6e_qt"]
+py-modules = ["Pseudohash", "fastgl", "mapedit_gl", "pu6e"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
