@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pu6e-reloaded"
-version = "1.0.0"
+version = "1.0.1"
 description = "A Python 3.14 port of the pu6e Ultima VI world editor"
 readme = "README.md"
 requires-python = ">=3.14"
