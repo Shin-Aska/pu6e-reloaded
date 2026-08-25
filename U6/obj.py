@@ -11,7 +11,6 @@ from struct import unpack, pack
 from U6.util import short, file_copy
 from U6 import Config
 from array import array
-# from Pseudohash import Pseudohash
 from U6 import look, tile, Point
 import copy
 
@@ -38,7 +37,6 @@ class Obj(object):  # was derived from 'object'
 		# This is merely a convenience for callers, and relies on basetile
 		# being populated (as it should be).
 		self.tile = map_type_to_tile(self.type)
-		# Pseudohash.__init__(self, **kw)
 
 	# Debugging: print object information
 	# Assumes you've filled in the necessary attributes.

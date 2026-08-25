@@ -3,10 +3,9 @@
 
 
 def main() -> None:
-    """Start the wxPython map editor."""
-    import mapedit_wxgl
+    from pu6e_qt.application import main as qt_main
 
-    mapedit_wxgl._main()
+    qt_main()
 
 
 if __name__ == "__main__":

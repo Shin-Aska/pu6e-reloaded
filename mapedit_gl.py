@@ -8,6 +8,7 @@ import os
 from U6 import tile, pal, look
 from U6 import Map, obj, book, NPCs, Font, Config
 from array import array
+from contextlib import chdir
 from struct import pack
 # import pygame
 # from Image import *
@@ -262,7 +263,6 @@ def draw_map():
 	glEnable(GL_TEXTURE_2D)
 	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE)
 	glBindTexture(GL_TEXTURE_2D, maptex)
-	glBegin(GL_QUADS)
 
 	scxs, scys, cxs, cys, txs, tys = Map.world_to_chunk(*coords)
 	xs, ys = 0, 0
@@ -339,8 +339,6 @@ def draw_map():
 			# draw chunk -- C
 			for chk, x, y in chunks:
 				fastgl.draw_chunk(c[chk], x, y)
-
-	glEnd()
 
 	wx, wy, wz = coords
 
@@ -926,23 +924,20 @@ def update_hybrid_tiles(game_timer):
 
 def read_data(directory, game='fp'):
 	global palette
-	olddir = os.getcwd()
 	Config.gamedir = os.path.abspath(directory)
 	Config.gametype = game
-	os.chdir(Config.gamedir)
-
-	palette = pal.pal()
-	palette.read(game)   # palette, look, Font and book currently require gametype
-	book.read(game)
-	look.read(game)
-	tile.read()
-	Map.read()
-	obj.read()
-	NPCs.read()
-	NPCs.populate()
-	#  the NPC frame will not be correct because .tile only takes .type into consideration
-	Font.read(game)
-	os.chdir(olddir)
+	with chdir(Config.gamedir):
+		palette = pal.pal()
+		palette.read(game)   # palette, look, Font and book currently require gametype
+		book.read(game)
+		look.read(game)
+		tile.read()
+		Map.read()
+		obj.read()
+		NPCs.read()
+		NPCs.populate()
+		#  the NPC frame will not be correct because .tile only takes .type into consideration
+		Font.read(game)
 
 if __name__ == '__main__':
 	global screen_width, screen_height, scale_factor

@@ -5,7 +5,6 @@ from struct import unpack, pack
 import numpy as Numeric
 import os
 from . import obj
-# from Pseudohash import Pseudohash
 from U6 import Config, look
 from U6.util import file_backup
 
@@ -19,7 +18,6 @@ class NPC(obj.Obj):
 
 	def __init__(self, **kw):
 		self.__dict__.update(kw)
-		# Pseudohash.__init__(self, **kw)
 		self.quality = 0
 		self.quantity = 0
 		self.contains = obj.objnpc[self.id]  # warning: you must set .id

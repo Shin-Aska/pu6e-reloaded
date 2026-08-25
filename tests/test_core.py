@@ -1,4 +1,5 @@
 from io import BytesIO
+from pathlib import Path
 from struct import pack
 
 import pytest
@@ -7,8 +8,66 @@ from U6 import Map, book, look, lzw, pal, tile
 
 
 def pack_codes(codes, width=9):
-    bits = sum(code << (index * width) for index, code in enumerate(codes))
-    return bits.to_bytes((len(codes) * width + 7) // 8, "little")
+    output = bytearray()
+    buffer = 0
+    buffered_bits = 0
+    for code in codes:
+        buffer |= code << buffered_bits
+        buffered_bits += width
+        while buffered_bits >= 8:
+            output.append(buffer & 0xFF)
+            buffer >>= 8
+            buffered_bits -= 8
+    if buffered_bits:
+        output.append(buffer)
+    return bytes(output)
+
+
+def encode_lzw_literals(data):
+    codes = []
+    for offset in range(0, len(data), 200):
+        codes.append(0x100)
+        codes.extend(data[offset:offset + 200])
+    codes.append(0x101)
+    return pack("<I", len(data)) + pack_codes(codes)
+
+
+def write_game_fixture(game_dir, game, label):
+    game_dir.mkdir()
+    palette_name = {"fp": "u6pal", "md": "mdpal", "se": "sepal"}[game]
+    (game_dir / palette_name).write_bytes(bytes((1,)) * 768)
+    (game_dir / "tileflag").write_bytes(bytes(0x1800))
+    (game_dir / "tileindx.vga").write_bytes(bytes(0x1000))
+    (game_dir / "animdata").write_bytes(bytes(194))
+    (game_dir / "objtiles.vga").write_bytes(bytes(1792 * 256))
+    (game_dir / "chunks").write_bytes(bytes(64))
+    (game_dir / "map").write_bytes(bytes(32256))
+    (game_dir / "basetile").write_bytes(bytes(2048))
+    savegame = game_dir / "savegame"
+    savegame.mkdir()
+    (savegame / "objlist").write_bytes(bytes(1536))
+    for y in "abcdefgh":
+        for x in "abcdefgh":
+            (savegame / f"objblk{x}{y}").write_bytes(bytes(2))
+    for x in "abcde":
+        (savegame / f"objblk{x}i").write_bytes(bytes(2))
+
+    look_data = pack("<H", 0) + label.encode("ascii") + b"\0"
+    masktypes = bytes(0x800)
+    maptiles = bytes(256 * 256)
+    if game == "fp":
+        (game_dir / "look.lzd").write_bytes(encode_lzw_literals(look_data))
+        (game_dir / "masktype.vga").write_bytes(encode_lzw_literals(masktypes))
+        (game_dir / "maptiles.vga").write_bytes(encode_lzw_literals(maptiles))
+        (game_dir / "animmask.vga").write_bytes(encode_lzw_literals(bytes(32 * 64)))
+        (game_dir / "book.dat").write_bytes(bytes(256))
+    else:
+        def library(data):
+            return pack("<IH", len(data) + 6, 6) + data
+
+        (game_dir / "look.lzc").write_bytes(library(look_data))
+        (game_dir / "masktype.vga").write_bytes(library(masktypes))
+        (game_dir / "maptiles.vga").write_bytes(library(maptiles))
 
 
 def test_lzw_decompresses_dictionary_references():
@@ -49,6 +108,16 @@ def test_palette_parsing_and_bytes():
 def test_tile_index_uses_integer_word_count():
     tile.parse_tileindx(pack("<3H", 1, 2, 65535))
     assert tile.tileindx == (1, 2, 65535)
+
+
+def test_compressed_tile_run_preserves_fixed_tile_size():
+    tile.masktypes = (0x0A,)
+    compressed_tile = b"\x01" + pack("<HB", 1, 1) + b"\x7f" + bytes(11)
+
+    tile.parse_maptiles(compressed_tile)
+
+    assert len(tile.maptiles[0]) == 256
+    assert tile.maptiles[0][1] == 0x7F
 
 
 def test_fastgl_palette_conversion_reports_animation():
@@ -98,6 +167,42 @@ def test_read_data_sets_runtime_game_configuration(monkeypatch, tmp_path):
     assert Config.gametype == "se"
     assert Config.gamedir == str(tmp_path.resolve())
     assert calls
+
+
+@pytest.mark.parametrize(
+    ("game", "label"),
+    (("fp", "false prophet"), ("md", "martian dreams"), ("se", "savage empire")),
+)
+def test_read_data_loads_complete_fixture_for_each_supported_game(tmp_path, game, label):
+    import mapedit_gl
+    from U6 import Config, NPCs, obj
+
+    game_dir = tmp_path / game
+    write_game_fixture(game_dir, game, label)
+
+    mapedit_gl.read_data(game_dir, game)
+
+    assert Config.gametype == game
+    assert look.get_obj_name(0) == label
+    assert len(tile.maptiles) == 2048
+    assert len(Map.map) == 69
+    assert len(Map.chunks) == 1
+    assert len(obj.objblk) == 69
+    assert len(NPCs.npcs) == 256
+    assert mapedit_gl.palette.pal[0] == (4, 4, 4)
+
+
+def test_read_data_restores_working_directory_when_loading_fails(monkeypatch, tmp_path):
+    import mapedit_gl
+
+    game_dir = tmp_path / "incomplete-game"
+    game_dir.mkdir()
+    monkeypatch.chdir(tmp_path)
+
+    with pytest.raises(FileNotFoundError):
+        mapedit_gl.read_data(game_dir, "fp")
+
+    assert Path.cwd() == tmp_path
 
 
 def test_missing_font_clears_previous_game_data(monkeypatch, tmp_path):
