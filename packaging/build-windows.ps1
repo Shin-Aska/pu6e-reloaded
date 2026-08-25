@@ -32,6 +32,7 @@ $sharedArguments = @(
     "--windowed",
     "--name", "pu6e-reloaded",
     "--icon", $iconPath,
+    "--collect-submodules", "OpenGL.platform",
     "--copy-metadata", "PyOpenGL",
     "--add-data", ((Join-Path $projectDirectory "LICENSE") + ":."),
     "--add-data", ((Join-Path $projectDirectory "NOTICE.md") + ":."),
