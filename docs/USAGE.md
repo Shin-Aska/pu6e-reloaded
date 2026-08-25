@@ -70,8 +70,13 @@ the selected installation is complete. Each game's directory is remembered
 independently, so switching worlds does not require editing a configuration
 file. Closing an editor returns to the launcher.
 
-Existing `pu6e.conf` configurations are imported automatically. Manual
-configuration remains available when needed:
+Configuration is stored outside the project in your platform's standard user
+configuration directory. On Linux, this is
+`~/.config/pu6e-reloaded/config.ini`, or
+`$XDG_CONFIG_HOME/pu6e-reloaded/config.ini` when `XDG_CONFIG_HOME` is set.
+Existing repository-local `pu6e.conf` configurations are migrated
+automatically without overwriting an existing user configuration. Manual
+configuration remains available by editing the user configuration file:
 
 ```ini
 [pu6e]
@@ -337,5 +342,6 @@ new environments should use the system dependency.
 
 ## Historical reference
 
-The original detailed manual remains in [`../00README.txt`](../00README.txt),
-and file-format research is retained under [`../doc/`](../doc/).
+The original detailed manual remains in
+[`history/README-0.6.0.txt`](history/README-0.6.0.txt),
+and file-format research is retained under [`reference/`](reference/).

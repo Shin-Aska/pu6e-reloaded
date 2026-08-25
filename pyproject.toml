@@ -8,8 +8,15 @@ version = "0.7.0"
 description = "A Python 3.14 port of the pu6e Ultima VI world editor"
 readme = "README.md"
 requires-python = ">=3.14"
-license = {file = "00LICENSE.txt"}
+license = "GPL-2.0-or-later"
+license-files = [
+  "LICENSE",
+  "NOTICE.md",
+  "THIRD_PARTY_NOTICES.md",
+  "docs/history/NOTICE-0.6.0.txt",
+]
 authors = [{name = "Jim Ursetto"}]
+maintainers = [{name = "Richard Louie Orilla"}]
 dependencies = [
   "numpy>=2.2",
   "PyOpenGL>=3.1.9",
