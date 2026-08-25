@@ -9,7 +9,7 @@ import os, os.path
 from io import BytesIO
 from struct import unpack, pack
 from U6.util import short, file_copy
-from U6 import Config
+from U6 import Config, dospath
 from array import array
 from U6 import look, tile, Point
 import copy
@@ -186,7 +186,7 @@ class Obj(object):  # was derived from 'object'
 		return self.contains.__delitem__(key)
 
 def read(fn=default_fn):
-	parse_basetile(open(fn['basetile'], 'rb'))
+	parse_basetile(open(dospath.resolve_dos_path(fn['basetile']), 'rb'))
 	parse_blocks(fn['objblk'])
 	# Debugging: only read one file
 	# parse_block(open(fn['objblk'] + 'cc', 'rb'))
@@ -200,12 +200,12 @@ def parse_blocks(fn):
 	# (string.ascii_lowercase[0:8] will also yield 'abcdefgh'.)
 	for j in 'abcdefgh':
 		for i in 'abcdefgh':
-			f = open(fn + i + j, "rb")
+			f = open(dospath.resolve_dos_path(fn + i + j), "rb")
 			block = parse_block(f)
 			objblk.append(block)
 
 	for i in 'abcde':
-		f = open(fn + i + 'i', "rb")
+		f = open(dospath.resolve_dos_path(fn + i + 'i'), "rb")
 		block = parse_block(f)
 		objblk.append(block)
 
@@ -284,7 +284,7 @@ def write_changes(fn=default_fn):
 		id = block_num_to_id(block)
 		# FIXME: we should write into a tmp file, then move it into place.
 		# (But note renaming over an existing file may not work in Windows.)
-		filename = os.path.join(Config.gamedir, fn['objblk'] + id)
+		filename = os.fspath(dospath.resolve_dos_path(os.path.join(Config.gamedir, fn['objblk'] + id)))
 		backup = filename + ".bak"
 		print("- writing block %s (%d)" % (id, block))
 

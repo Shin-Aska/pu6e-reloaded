@@ -123,7 +123,7 @@ def test_profile_distinguishes_missing_expected_palette(tmp_path: Path, game: st
 
 @pytest.mark.parametrize("game", GAMES)
 @pytest.mark.parametrize("resource", ("palette", "tileflag"))
-def test_profile_reports_case_mismatched_game_filename(
+def test_profile_accepts_case_insensitive_game_filenames(
     tmp_path: Path, game: str, resource: str
 ) -> None:
     store, directory = _installation(tmp_path, game)
@@ -133,15 +133,8 @@ def test_profile_reports_case_mismatched_game_filename(
 
     profile = store.inspect(game, directory)
 
-    if (directory / expected_name).is_file():
-        assert profile.issue is None
-        assert profile.ready
-        return
-
-    assert profile.issue is not None
-    assert profile.issue.kind.value == "case_mismatch"
-    assert expected_name in profile.issue.paths
-    assert actual_name in profile.issue.paths
+    assert profile.issue is None
+    assert profile.ready
 
 
 @pytest.mark.parametrize("game", GAMES)

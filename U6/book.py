@@ -2,6 +2,7 @@
 
 import re
 import sys
+from U6 import dospath
 from U6.util import short
 
 default_fn = "book.dat"
@@ -12,7 +13,7 @@ def read(game='fp'):
 	if not game == 'fp':
 		books = [''] * 128
 		return 0          # Don't understand MD/SE books; return empty set
-	f = open(default_fn, "rb")
+	f = open(dospath.resolve_dos_path(default_fn), "rb")
 	parse(f.read())
 
 def parse(buf):

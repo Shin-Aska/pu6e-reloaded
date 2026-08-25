@@ -6,7 +6,7 @@ import re
 from struct import unpack_from
 from typing import Final
 
-from U6 import lzw
+from U6 import dospath, lzw
 
 
 _ARCHIVES: Final = ("converse.a", "converse.b")
@@ -24,7 +24,7 @@ class Conversation:
 def read_conversations(directory: Path) -> tuple[Conversation, ...]:
     conversations: list[Conversation] = []
     for archive in _ARCHIVES:
-        path = directory / archive
+        path = dospath.resolve_dos_path(directory / archive)
         if not path.is_file():
             continue
 

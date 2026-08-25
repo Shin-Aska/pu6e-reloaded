@@ -169,7 +169,7 @@ def test_configuration_dialog_explains_missing_saved_world(
 
 
 @pytest.mark.parametrize("game", GAMES)
-def test_configuration_dialog_explains_case_and_permission_failures(
+def test_configuration_dialog_accepts_case_variants_and_explains_permission_failures(
     tmp_path: Path, launcher_app: QApplication, game: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     # Given: a case-mismatched installation and a complete readable installation.
@@ -183,17 +183,9 @@ def test_configuration_dialog_explains_case_and_permission_failures(
     # When: the capitalization mismatch is selected.
     dialog.directory_field.setText(str(case_directory))
 
-    # Then: the expected and actual names plus rename recovery are visible.
     status = dialog.status_label.text()
-    if (case_directory / expected_name).is_file():
-        assert dialog.save_button.isEnabled()
-        assert "installation verified" in status.lower()
-    else:
-        assert not dialog.save_button.isEnabled()
-        assert "incorrect capitalization" in status.lower()
-        assert expected_name in status
-        assert actual_name in status
-        assert "rename the game files" in status.lower()
+    assert dialog.save_button.isEnabled()
+    assert "installation verified" in status.lower()
 
     # When: the selected directory is denied read access at the narrow inspection seam.
     monkeypatch.setattr(game_profiles, "_is_readable", lambda path: path != readable_directory)

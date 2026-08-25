@@ -7,7 +7,7 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Final, assert_never
 
-from U6 import Config, obj, pal
+from U6 import Config, dospath, obj, pal
 
 
 @dataclass(frozen=True, slots=True)
@@ -184,7 +184,8 @@ class GameProfileStore:
         }
         if game == "fp":
             resources.add("book.dat")
-        missing = tuple(sorted(name for name in resources if not (resolved / name).is_file()))
+        resource_paths = {name: dospath.resolve_dos_path(resolved / name) for name in resources}
+        missing = tuple(sorted(name for name, path in resource_paths.items() if not path.is_file()))
 
         if not resolved.exists():
             issue = GameProfileIssue(GameProfileIssueKind.DIRECTORY_MISSING, (str(resolved),))
@@ -195,8 +196,9 @@ class GameProfileStore:
         else:
             candidates = ("savegame", *sorted(resources))
             denied = next(
-                (name for name in candidates if (resolved / name).exists()
-                 and not _is_readable(resolved / name)),
+                (name for name in candidates
+                 if (path := dospath.resolve_dos_path(resolved / name)).exists()
+                 and not _is_readable(path)),
                 None,
             )
             issue = (
@@ -250,27 +252,17 @@ def _is_readable(path: Path) -> bool:
 def _inspect_directory(
     game: GameSpecification, directory: Path, missing: tuple[str, ...]
 ) -> GameProfileIssue | None:
-    savegame = directory / "savegame"
+    savegame = dospath.resolve_dos_path(directory / "savegame")
     expected_palette = pal.paths[game.key]
     if expected_palette in missing:
         detected = tuple(
             other
             for other in GAMES
-            if other.key != game.key and (directory / pal.paths[other.key]).is_file()
+            if other.key != game.key
+            and dospath.resolve_dos_path(directory / pal.paths[other.key]).is_file()
         )
         if len(detected) == 1:
             return GameProfileIssue(GameProfileIssueKind.WRONG_GAME, (expected_palette,), detected[0])
-
-    for expected in missing:
-        expected_path = directory / expected
-        parent = expected_path.parent
-        if parent.is_dir():
-            actual = next(
-                (entry.name for entry in parent.iterdir() if entry.name.casefold() == expected_path.name.casefold()),
-                None,
-            )
-            if actual is not None:
-                return GameProfileIssue(GameProfileIssueKind.CASE_MISMATCH, (expected, actual))
 
     if expected_palette in missing:
         return GameProfileIssue(GameProfileIssueKind.MISSING_PALETTE, (expected_palette,))

@@ -3,6 +3,7 @@
 from io import BytesIO
 from struct import unpack
 import numpy as Numeric
+from U6 import dospath
 
 default_fn = { 'font':   "u6.ch",
 }
@@ -21,7 +22,7 @@ def read(game='fp'):
 #		return 0
 	fn = default_fn
 	try:
-		f = open(fn['font'], "rb")
+		f = open(dospath.resolve_dos_path(fn['font']), "rb")
 		parse_font(f.read())
 	except IOError:
 		print("* Font unavailable.")

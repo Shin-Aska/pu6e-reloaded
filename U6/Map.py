@@ -5,7 +5,7 @@ import os
 from struct import unpack, pack
 from array import array
 from U6.util import file_backup
-from U6 import Config
+from U6 import Config, dospath
 
 default_fn = { 'chunks': "chunks",
                'map':    "map"
@@ -16,13 +16,13 @@ chunks_dirty = 0
 map_dirty = 0
 
 def read(fn=default_fn):
-	parse_chunks(open(fn['chunks'], 'rb'))
-	parse_map(open(fn['map'], 'rb'))
+	parse_chunks(open(dospath.resolve_dos_path(fn['chunks']), 'rb'))
+	parse_map(open(dospath.resolve_dos_path(fn['map']), 'rb'))
 
 def write_chunks(fn=default_fn):
 	global chunks_dirty
 	name = fn['chunks']
-	name = os.path.join(Config.gamedir, name)
+	name = os.fspath(dospath.resolve_dos_path(os.path.join(Config.gamedir, name)))
 	file_backup(name)
 	f = open(name, 'wb')
 	for chunk in chunks:
@@ -32,7 +32,7 @@ def write_chunks(fn=default_fn):
 def write_map(fn=default_fn):
 	global map_dirty
 	name = fn['map']
-	name = os.path.join(Config.gamedir, name)
+	name = os.fspath(dospath.resolve_dos_path(os.path.join(Config.gamedir, name)))
 	file_backup(name)
 	f = open(name, 'wb')
 

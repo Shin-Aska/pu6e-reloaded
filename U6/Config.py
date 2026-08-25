@@ -2,7 +2,7 @@
 
 from configparser import ConfigParser
 from struct import unpack
-from U6 import lzw
+from U6 import dospath, lzw
 
 screen_width  = None
 screen_height = None
@@ -67,7 +67,7 @@ def read_file(name, game=None):
 	if enc & EMPTY:
 		return b""   # Return empty buffer for this file.
 
-	f = open(fn, "rb")
+	f = open(dospath.resolve_dos_path(fn), "rb")
 	b = f.read()
 	f.close()
 	if enc & LZW:

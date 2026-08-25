@@ -5,7 +5,7 @@ from struct import unpack, pack
 import numpy as Numeric
 import os
 from . import obj
-from U6 import Config, look
+from U6 import Config, dospath, look
 from U6.util import file_backup
 
 default_fn = { 'objlist':   "savegame/objlist",
@@ -54,7 +54,7 @@ class NPC(obj.Obj):
 		o.status &= ~0x08  # Turn off readied bit, for safety.
 
 def read(fn=default_fn):
-	f = open(fn['objlist'], "rb")
+	f = open(dospath.resolve_dos_path(fn['objlist']), "rb")
 	parse_npcs(f.read())
 
 def parse_npcs(buf):
@@ -77,7 +77,7 @@ def parse_npcs(buf):
 		npcs[i].tile     = obj.map_type_to_tile(npcs[i].type)
 
 def write(fn=default_fn):
-	filename = os.path.join(Config.gamedir, fn['objlist'])
+	filename = os.fspath(dospath.resolve_dos_path(os.path.join(Config.gamedir, fn['objlist'])))
 	file_backup(filename)
 	f = open(filename, 'rb+')   # Don't destroy current contents.
 	f.seek(0x100)

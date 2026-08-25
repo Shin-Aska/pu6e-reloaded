@@ -2,6 +2,7 @@
 
 from struct import unpack
 from array import array
+from U6 import dospath
 
 paths = { 'fp': "u6pal", 'md': 'mdpal', 'se': 'sepal' }
 
@@ -11,7 +12,7 @@ class pal:
 
 	def read(self, game='fp'):
 		fn = paths[game]
-		f = open(fn, 'rb')
+		f = open(dospath.resolve_dos_path(fn), 'rb')
 		self.parse(f)
 		f.close()
 
