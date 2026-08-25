@@ -31,7 +31,7 @@ dev = ["pytest>=9"]
 
 [tool.setuptools]
 packages = ["U6", "pu6e_qt"]
-py-modules = ["Pseudohash", "fastgl", "mapedit_gl", "pu6e"]
+py-modules = ["fastgl", "mapedit_gl", "pu6e"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

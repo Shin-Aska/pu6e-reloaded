@@ -37,6 +37,8 @@ include or grant permission to redistribute copyrighted game assets.
   zoomed-out rendering.
 - Replaced the obsolete SWIG LZW extension with a memory-safe, pure-Python
   decoder.
+- Removed obsolete wxPython interfaces, native-extension toolchains, and
+  Python 2-era packaging scripts from the maintained source tree.
 - Added automated coverage for supported games, game data, launcher behavior,
   editor operations, and configuration migration.
 
@@ -100,7 +102,8 @@ uv sync
 .venv/bin/pytest
 ```
 
-The original source and documentation are retained for historical reference.
+The original documentation and technical references are retained for historical
+reference.
 The original 2003 README, installation instructions, and copyright notice are
 preserved verbatim under [`docs/history/`](docs/history/). Original game-data
 research and technical references are preserved under
