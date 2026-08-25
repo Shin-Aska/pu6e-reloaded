@@ -174,3 +174,23 @@ def test_terrain_mode_preserves_background_drag_for_editing(
     )
 
     assert navigation_controller.position == (100, 100, 0)
+
+
+@pytest.mark.parametrize(
+    "zoom_scenario",
+    ((0.25, 0.5, 0.25), (0.3, 0.5, 0.25), (3.0, 2.0, 4.0), (4.0, 2.0, 4.0)),
+)
+def test_map_zoom_stays_between_twenty_five_and_four_hundred_percent(
+    navigation_controller: EditorController,
+    zoom_scenario: tuple[float, float, float],
+) -> None:
+    from pu6e_qt.canvas import MapCanvas
+
+    initial_scale, factor, expected_scale = zoom_scenario
+    renderer.scale_factor = initial_scale
+    canvas = MapCanvas(navigation_controller)
+    canvas.timer.stop()
+
+    canvas.zoom(factor)
+
+    assert renderer.scale_factor == expected_scale

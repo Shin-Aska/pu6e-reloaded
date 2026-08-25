@@ -150,6 +150,33 @@ def test_zoom_selector_applies_an_explicit_percentage(workbench) -> None:
     assert workbench.zoom_label.text() == "200%"
 
 
+def test_zoom_selector_only_offers_supported_percentages(workbench) -> None:
+    selector = workbench.actions.zoom_selector
+
+    percentages = tuple(selector.itemText(index) for index in range(selector.count()))
+
+    assert percentages == ("25%", "50%", "100%", "200%", "400%")
+
+
+@pytest.mark.parametrize(
+    "zoom_scenario",
+    ((0.25, True, False), (1.0, True, True), (4.0, False, True)),
+)
+def test_zoom_actions_disable_at_the_supported_limits(
+    workbench,
+    zoom_scenario: tuple[float, bool, bool],
+) -> None:
+    scale, zoom_in_enabled, zoom_out_enabled = zoom_scenario
+    renderer.scale_factor = scale
+
+    workbench.canvas.zoom_changed.emit(scale)
+
+    assert (workbench.actions.zoom_in.isEnabled(), workbench.actions.zoom_out.isEnabled()) == (
+        zoom_in_enabled,
+        zoom_out_enabled,
+    )
+
+
 def test_level_selector_jumps_directly_between_surface_and_underworld(workbench) -> None:
     workbench.controller.set_position(0x134, 0x16C, 0)
 

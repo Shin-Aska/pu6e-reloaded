@@ -7,6 +7,7 @@ from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import QComboBox, QDialog, QMessageBox, QToolBar
 
 import mapedit_gl as render
+from pu6e_qt.canvas import MAXIMUM_ZOOM, MINIMUM_ZOOM
 from pu6e_qt.dialogs import GoToDialog
 from pu6e_qt.icons import action_icon
 
@@ -102,7 +103,7 @@ class WorkbenchActions:
         self.zoom_selector.setObjectName("zoom-selector")
         self.zoom_selector.setAccessibleName("World map zoom percentage")
         self.zoom_selector.setToolTip("Choose the world map zoom percentage")
-        self.zoom_selector.addItems(("12.5%", "25%", "50%", "100%", "200%", "400%"))
+        self.zoom_selector.addItems(("25%", "50%", "100%", "200%", "400%"))
         self.zoom_selector.setMinimumWidth(84)
         self._sync_zoom(render.scale_factor)
         self.zoom_selector.currentTextChanged.connect(self._apply_zoom)
@@ -208,6 +209,8 @@ class WorkbenchActions:
             self.window_menu.addAction(action)
 
     def _sync_zoom(self, scale: float) -> None:
+        self.zoom_in.setEnabled(scale < MAXIMUM_ZOOM)
+        self.zoom_out.setEnabled(scale > MINIMUM_ZOOM)
         label = f"{scale * 100:g}%"
         blocker = QSignalBlocker(self.zoom_selector)
         if self.zoom_selector.findText(label) < 0:

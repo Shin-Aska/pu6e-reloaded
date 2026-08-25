@@ -14,6 +14,8 @@ from pu6e_qt.map_navigation import navigation_action
 from pu6e_qt.map_pan import PanAnchor, dragged_world_position
 
 _ANIMATION_INTERVAL_MS: Final = 51
+MINIMUM_ZOOM: Final = 0.25
+MAXIMUM_ZOOM: Final = 4.0
 
 
 class OpenGLCompatibilityError(RuntimeError):
@@ -112,7 +114,10 @@ class MapCanvas(QOpenGLWidget):
     def zoom(self, factor: float) -> None:
         if factor <= 0:
             return
-        render.scale_factor *= factor
+        scale = max(MINIMUM_ZOOM, min(MAXIMUM_ZOOM, render.scale_factor * factor))
+        if scale == render.scale_factor:
+            return
+        render.scale_factor = scale
         if self.isValid():
             self.makeCurrent()
             render.Resize(*self._framebuffer_size(self.width(), self.height()))

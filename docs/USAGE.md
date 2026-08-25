@@ -149,8 +149,10 @@ them, then return focus to the map for map controls.
 | `Ctrl+G` | Go to hexadecimal X, Y, Z coordinates |
 
 The icon toolbar also shows the current zoom percentage, offers preset zoom
-levels, and provides a world-level selector for jumping directly between the
-surface and any of the five underworld levels.
+levels between 25% and 400%, and provides a world-level selector for jumping
+directly between the surface and any of the five underworld levels. Zooming is
+capped at 25% and 400% for toolbar buttons, keyboard shortcuts, and the mouse
+wheel.
 
 On Windows, enable Num Lock for numeric-keypad navigation.
 
