@@ -9,9 +9,10 @@ from typing import Final
 import mapedit_gl as renderer
 from U6 import Config
 
+from pu6e_qt.configuration import migrate_legacy_configuration, user_configuration_path
 from pu6e_qt.controller import EditorController
 
-_CONFIG_PATH: Final = Path("pu6e.conf")
+_CONFIG_PATH: Final = user_configuration_path()
 _INITIAL_POSITION: Final = (0x134, 0x16C, 0)
 @dataclass(frozen=True, slots=True)
 class ConfigurationFileError(FileNotFoundError):
@@ -123,6 +124,7 @@ def main() -> None:
     application = QApplication(sys.argv)
     apply_theme(application)
     try:
+        migrate_legacy_configuration(_CONFIG_PATH, Path("pu6e.conf"))
         store = GameProfileStore(_CONFIG_PATH)
     except configparser.Error as error:
         from PySide6.QtWidgets import QMessageBox

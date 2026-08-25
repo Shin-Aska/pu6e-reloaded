@@ -237,6 +237,7 @@ class GameProfileStore:
             if not self._configuration.has_section(section):
                 self._configuration.add_section(section)
             self._configuration.set(section, "gamedir", str(directory))
+        self.config_path.parent.mkdir(parents=True, exist_ok=True)
         with self.config_path.open("w", encoding="utf-8") as destination:
             self._configuration.write(destination)
 
