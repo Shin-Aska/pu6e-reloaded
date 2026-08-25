@@ -5,12 +5,13 @@ from typing import Final, Protocol
 from PySide6.QtCore import QPointF, Qt, QTimer, Signal
 from PySide6.QtGui import QKeyEvent, QMouseEvent, QSurfaceFormat, QWheelEvent
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
-from PySide6.QtWidgets import QWidget
+from PySide6.QtWidgets import QApplication, QWidget
 
 import mapedit_gl as render
 from pu6e_qt.controller import EditorController
 from pu6e_qt.map_input import MapInteraction
 from pu6e_qt.map_navigation import navigation_action
+from pu6e_qt.map_pan import PanAnchor, dragged_world_position
 
 _ANIMATION_INTERVAL_MS: Final = 51
 
@@ -58,6 +59,9 @@ class MapCanvas(QOpenGLWidget):
         super().__init__(parent)
         self.controller = controller
         self.interaction = MapInteraction(controller)
+        self._pan_anchor: PanAnchor | None = None
+        self._pending_pan: QPointF | None = None
+        self._pan_button = Qt.MouseButton.NoButton
         self._renderer_ready = False
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setMouseTracking(True)
@@ -140,9 +144,22 @@ class MapCanvas(QOpenGLWidget):
         event.accept()
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
+        if event.button() == Qt.MouseButton.MiddleButton:
+            self._begin_pan(event.position(), event.button())
+            event.accept()
+            return
+
         x, y, z = self._world_at(event.position())
         if event.button() == Qt.MouseButton.LeftButton:
             self.interaction.press_left(x, y, z)
+            origin = self.interaction.drag_origin
+            if (
+                origin is not None
+                and origin.item is None
+                and not self.controller.terrain_mode
+                and event.modifiers() == Qt.KeyboardModifier.NoModifier
+            ):
+                self._pending_pan = event.position()
             event.accept()
             return
         if event.button() == Qt.MouseButton.RightButton:
@@ -153,7 +170,14 @@ class MapCanvas(QOpenGLWidget):
         super().mousePressEvent(event)
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
+        if event.button() == self._pan_button:
+            self._end_pan()
+            self.interaction.drag_origin = None
+            event.accept()
+            return
+
         if event.button() == Qt.MouseButton.LeftButton:
+            self._pending_pan = None
             x, y, z = self._world_at(event.position())
             modifiers = event.modifiers()
             self.interaction.release_left(
@@ -173,12 +197,43 @@ class MapCanvas(QOpenGLWidget):
         super().mouseReleaseEvent(event)
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
+        if self._pan_anchor is not None:
+            self._continue_pan(event.position())
+            event.accept()
+            return
+        if self._pending_pan is not None and event.buttons() & Qt.MouseButton.LeftButton:
+            distance = (event.position() - self._pending_pan).manhattanLength()
+            if distance >= QApplication.startDragDistance():
+                self._begin_pan(self._pending_pan, Qt.MouseButton.LeftButton)
+                self._continue_pan(event.position())
+            event.accept()
+            return
         if event.buttons() & Qt.MouseButton.RightButton:
             if self.interaction.drag_right(*self._world_at(event.position())):
                 self.update()
             event.accept()
             return
         super().mouseMoveEvent(event)
+
+    def _begin_pan(self, pointer: QPointF, button: Qt.MouseButton) -> None:
+        self._pan_anchor = PanAnchor(pointer, self.controller.position)
+        self._pan_button = button
+        self.setCursor(Qt.CursorShape.ClosedHandCursor)
+
+    def _continue_pan(self, pointer: QPointF) -> None:
+        anchor = self._pan_anchor
+        if anchor is None:
+            return
+        pixels_per_tile = 16.0 * render.scale_factor / self.devicePixelRatioF()
+        position = dragged_world_position(anchor, pointer, pixels_per_tile)
+        if position != self.controller.position:
+            self.controller.set_position(*position)
+
+    def _end_pan(self) -> None:
+        self._pan_anchor = None
+        self._pending_pan = None
+        self._pan_button = Qt.MouseButton.NoButton
+        self.unsetCursor()
 
     def wheelEvent(self, event: QWheelEvent) -> None:
         delta = event.angleDelta().y()
