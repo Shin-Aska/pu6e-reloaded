@@ -2,8 +2,9 @@
 
 ## Using pu6e Reloaded
 
-- [User guide](USAGE.md): Installation, game configuration, navigation,
-  editing, saving, and troubleshooting.
+- [Complete illustrated manual](MANUAL.md): First-run Ultima VI setup,
+  installation, game configuration, world navigation, object and terrain
+  editing, quests, saving, keyboard shortcuts, and troubleshooting.
 - [Project overview](../README.md): Supported games, modernization work,
   development setup, credits, and licensing.
 
@@ -16,7 +17,8 @@ The original pu6e 0.6.0 documents are preserved without modification:
 - [Jim Ursetto's copyright and license notice](history/NOTICE-0.6.0.txt).
 
 These historical instructions describe the original Python and wxWindows
-application. Use the current [user guide](USAGE.md) to run pu6e Reloaded.
+application. Use the current [illustrated manual](MANUAL.md) to run pu6e
+Reloaded.
 
 ## Ultima VI technical references
 

@@ -12,13 +12,17 @@ preserving its original **GNU GPL version 2 or later** license.
 
 ![pu6e Reloaded Qt world editor](docs/main.png)
 
+New to the editor? Start with the **[complete illustrated user
+manual](docs/MANUAL.md)**, which walks through an unconfigured first launch,
+Ultima VI setup, world editing, and safe saving.
+
 ## Supported games
 
-| Game | Configuration key |
-| --- | --- |
-| Ultima VI: The False Prophet | `fp` |
-| Worlds of Ultima: Martian Dreams | `md` |
-| Worlds of Ultima: The Savage Empire | `se` |
+| Game                                | Configuration key |
+| ----------------------------------- | ----------------- |
+| Ultima VI: The False Prophet        | `fp`              |
+| Worlds of Ultima: Martian Dreams    | `md`              |
+| Worlds of Ultima: The Savage Empire | `se`              |
 
 Original game files and a saved game are required. This repository does not
 include or grant permission to redistribute copyrighted game assets.
@@ -54,13 +58,42 @@ require compiling the desktop toolkit from source.
 
 ## Install
 
-Create the environment and install the locked project dependencies from the
-repository root:
+On Ubuntu 24.04 or Linux Mint 22.x, install the required system packages for
+Git, Qt's X11/XCB platform integration, and desktop OpenGL:
 
 ```console
-uv venv --python 3.14
-uv sync
+sudo apt update
+sudo apt install \
+  git curl ca-certificates \
+  libgl1 libegl1 libgl1-mesa-dri \
+  libxkbcommon-x11-0 \
+  libxcb-cursor0 libxcb-glx0 libxcb-icccm4 libxcb-image0 \
+  libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 \
+  libxcb-shape0 libxcb-xinerama0 libxcb-xkb1
 ```
+
+Install `uv` if it is not already available, then reopen your terminal:
+
+```console
+curl -LsSf https://astral.sh/uv/install.sh | sh
+uv --version
+```
+
+Clone the repository, install Python 3.14, create the virtual environment,
+and install the locked Python packages:
+
+```console
+git clone https://gitlab.com/ShinAska/pu6e-reloaded.git
+cd pu6e-reloaded
+uv python install 3.14
+uv venv --python 3.14
+uv sync --locked
+```
+
+`uv sync --locked` installs **NumPy**, **PyOpenGL**, **PySide6/Qt 6**,
+PySide6's required support packages, and the development dependency
+**pytest**. Use `uv sync --locked --no-dev` to omit development packages.
+Inspect the installation with `uv tree --depth 2` and `uv pip check`.
 
 Start the native game launcher:
 
@@ -68,27 +101,20 @@ Start the native game launcher:
 .venv/bin/pu6e
 ```
 
+![Unconfigured pu6e Reloaded game launcher](docs/images/manual/01-first-launch-unconfigured.png)
+
 Use the cog beside Ultima VI, Martian Dreams, or The Savage Empire to choose
 that game's working directory. The launcher checks the original game files and
-saved-world data before revealing its **Launch editor** button, and remembers
+saved-world data before enabling its **Launch editor** button, and remembers
 each game independently in your user configuration directory
 (`~/.config/pu6e-reloaded/config.ini` on Linux). Existing repository-local
 `pu6e.conf` configurations are migrated automatically. Game assets are
 copyrighted and are not included.
 
-On Ubuntu systems using Qt's X11 platform plugin, install the required cursor
-library if it is absent:
-
-```console
-sudo apt install libxcb-cursor0
-```
-
-The current checked-out `.venv` may already run through a localized workaround;
-installing the system library is the reliable setup for a fresh environment.
-
-For game-data preparation, configuration examples, navigation, editing,
-keyboard shortcuts, safe saving, and troubleshooting, see the
-**[User Guide](docs/USAGE.md)**. The complete
+For a screenshot-by-screenshot walkthrough from the unconfigured launcher
+through Ultima VI setup, navigation, object and terrain editing, quest
+browsing, safe saving, keyboard shortcuts, and troubleshooting, see the
+**[complete illustrated user manual](docs/MANUAL.md)**. The complete
 [documentation index](docs/README.md) also includes original manuals and
 Ultima VI file-format research.
 
