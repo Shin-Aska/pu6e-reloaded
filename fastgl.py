@@ -1,5 +1,8 @@
 """Python 3 replacement for pu6e's obsolete Python 2 OpenGL extension."""
 
+from collections.abc import Sequence
+
+import numpy as np
 from OpenGL import GL
 
 
@@ -62,19 +65,69 @@ def draw_chunk(tiles, x, y):
             draw_poly_maptile_1tex(tiles[row * 8 + column], x + column * 16, y + row * 16)
 
 
-def draw_maptiles(x, y, wx, wy, wz, stride, height, maps, chunks):
+def draw_maptiles(
+    x: int,
+    y: int,
+    wx: int,
+    wy: int,
+    wz: int,
+    stride: int,
+    height: int,
+    maps: Sequence[Sequence[int]],
+    chunks: Sequence[Sequence[int]],
+) -> None:
     from U6 import Map
-    start_x, start_wx = x, wx
-    while y < height:
-        while x < stride:
-            scx, scy, cx, cy, tx, ty = Map.world_to_chunk(wx, wy, wz)
-            chunk_width = 16 if wz == 0 else 32
-            superchunk = scx + scy * 8
-            chunk = maps[superchunk][cx + cy * chunk_width]
-            tile = chunks[chunk][tx + ty * 8]
-            draw_poly_maptile_1tex(tile, x, y)
-            x, wx = x + 16, wx + 1
-        x, wx, y, wy = start_x, start_wx, y + 16, wy + 1
+
+    columns = max(0, (stride - x + 15) // 16)
+    rows = max(0, (height - y + 15) // 16)
+    if not columns or not rows:
+        return
+
+    chunk_width = 16 if wz == 0 else 32
+    tile_ids = np.asarray(
+        [
+            chunks[maps[scx + scy * 8][cx + cy * chunk_width]][tx + ty * 8]
+            for world_y in range(wy, wy + rows)
+            for world_x in range(wx, wx + columns)
+            for scx, scy, cx, cy, tx, ty in (Map.world_to_chunk(world_x, world_y, wz),)
+        ],
+        dtype=np.float32,
+    ).reshape(rows, columns)
+
+    vertices = np.empty((rows, columns, 4, 3), dtype=np.float32)
+    vertices[..., 0] = (
+        np.arange(columns, dtype=np.float32)[None, :, None] * 16
+        + x
+        + (0.0, 16.0, 16.0, 0.0)
+    )
+    vertices[..., 1] = (
+        np.arange(rows, dtype=np.float32)[:, None, None] * 16
+        + y
+        + (0.0, 0.0, 16.0, 16.0)
+    )
+    vertices[..., 2] = 0.0
+
+    texture_coordinates = np.empty((rows, columns, 4, 2), dtype=np.float32)
+    texture_coordinates[..., 0] = (tile_ids % 16)[..., None] / 16 + (
+        0.0,
+        0.0625,
+        0.0625,
+        0.0,
+    )
+    texture_coordinates[..., 1] = (tile_ids // 16)[..., None] / 16 + (
+        0.0,
+        0.0,
+        0.0625,
+        0.0625,
+    )
+
+    GL.glEnableClientState(GL.GL_VERTEX_ARRAY)
+    GL.glEnableClientState(GL.GL_TEXTURE_COORD_ARRAY)
+    GL.glVertexPointer(3, GL.GL_FLOAT, 0, vertices.reshape(-1, 3))
+    GL.glTexCoordPointer(2, GL.GL_FLOAT, 0, texture_coordinates.reshape(-1, 2))
+    GL.glDrawArrays(GL.GL_QUADS, 0, rows * columns * 4)
+    GL.glDisableClientState(GL.GL_TEXTURE_COORD_ARRAY)
+    GL.glDisableClientState(GL.GL_VERTEX_ARRAY)
 
 
 def draw_object(texture, status, ox, oy, wx, wy, stride, height):

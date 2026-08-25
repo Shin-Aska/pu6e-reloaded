@@ -263,7 +263,6 @@ def draw_map():
 	glEnable(GL_TEXTURE_2D)
 	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE)
 	glBindTexture(GL_TEXTURE_2D, maptex)
-	glBegin(GL_QUADS)
 
 	scxs, scys, cxs, cys, txs, tys = Map.world_to_chunk(*coords)
 	xs, ys = 0, 0
@@ -340,8 +339,6 @@ def draw_map():
 			# draw chunk -- C
 			for chk, x, y in chunks:
 				fastgl.draw_chunk(c[chk], x, y)
-
-	glEnd()
 
 	wx, wy, wz = coords
 
