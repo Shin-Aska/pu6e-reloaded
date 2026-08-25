@@ -127,6 +127,7 @@ class WorkbenchActions:
             (docks.tile_dock, "T"),
             (docks.chunk_dock, "C"),
             (docks.book_dock, ""),
+            (docks.minimap_dock, "M"),
         ):
             action = dock.toggleViewAction()
             if shortcut:

@@ -119,6 +119,8 @@ them, then return focus to the map for map controls.
 | Input | Action |
 | --- | --- |
 | Arrow keys | Move one tile |
+| Middle-button drag | Pan the world without changing game data |
+| Left-drag empty terrain | Pan while terrain editing is disabled |
 | Numeric keypad directions | Move one 8×8 chunk |
 | Numpad `5` | Descend one level |
 | Numpad `0` | Ascend one level |
@@ -178,6 +180,7 @@ Shift+left-drag copies the source map chunk to the destination chunk position.
 | `S` | Toggle Object stack |
 | `T` | Toggle Tile library |
 | `C` | Toggle Map chunk |
+| `M` | Toggle World map |
 | `Ctrl+G` | Open Go To |
 
 The same features are available from the workbench **File**, **Edit**, **View**,
@@ -225,6 +228,13 @@ status values are game-format fields, not guarded gameplay-level settings.
 
 Selecting a map location shows its current 8×8 chunk. Change the chunk number
 to replace that map location with another existing chunk.
+
+### World map
+
+The World map dock renders a live overview of the current surface or dungeon
+level using the original game tiles and palette. Its brass outline marks the
+currently visible map area. Click or drag anywhere in the overview to jump to
+that world location; press `M` to toggle the dock.
 
 ### Tile browser
 

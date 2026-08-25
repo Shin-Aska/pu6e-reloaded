@@ -52,6 +52,7 @@ def test_workbench_composes_native_docks_and_position_status(workbench) -> None:
     assert workbench.docks.tile_dock.windowTitle() == "Tile library"
     assert workbench.docks.chunk_dock.windowTitle() == "Map chunk"
     assert workbench.docks.book_dock.windowTitle() == "Books"
+    assert workbench.docks.minimap_dock.windowTitle() == "World map"
 
     workbench.controller.set_position(0x134, 0x16C, 0)
 
