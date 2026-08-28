@@ -134,6 +134,35 @@ overlapping the action row.
 - Layout: fluid right stage; the primary action remains in the lower reading
   zone and diagnostics do not clip at the minimum window size.
 
+### Launcher renderer settings
+
+- Structure: a global settings action in the Atlas rail opens one compact
+  native dialog with a labeled renderer selector, backend explanation, a
+  Vulkan-only GPU selector, restart guidance, and cancel/save actions.
+- Variants: Software, OpenGL, Vulkan.
+- Spacing: `space.6` dialog padding; `space.3` field and action rhythm.
+- States: current value, changed value, saved, persistence failure, keyboard
+  focus, and restart required.
+- Accessibility: the settings action and selector have explicit accessible
+  names; every backend and Vulkan adapter is named in text and its tradeoff is
+  described without depending on color.
+- GPU selection: Automatic is the recommended default; Vulkan adapters include
+  their reported name and device type. The row is hidden for Software and
+  OpenGL, and a saved adapter that disappears falls back to Automatic with a
+  startup notice.
+- First-run behavior: Vulkan with Automatic GPU selection is the default when
+  no renderer preference has ever been saved; later launches preserve the
+  user's explicit renderer and GPU choices.
+- Restart flow: saving a changed renderer or Vulkan GPU opens a native choice
+  between **Restart now** and **Later**. The current process exits only after a
+  replacement process starts successfully; failure remains visible and leaves
+  the current launcher running.
+- Runtime indicator: launcher and workbench window titles append the resolved
+  renderer name; CPU Vulkan is identified separately and a fallback reports
+  the backend actually in use rather than the saved preference.
+- Layout: the global action remains separate from per-world configuration and
+  reachable at the bottom of the fixed launcher rail.
+
 ### Workbench toolbar
 
 - Structure: compact action clusters separated by subtle vertical dividers.

@@ -896,6 +896,10 @@ After configuring and launching Ultima VI, the relevant sections resemble:
 [game:fp]
 gamedir = /home/example/Games/ULTIMA6-pu6e
 
+[launcher]
+renderer = vulkan
+vulkan_gpu = auto
+
 [pu6e]
 gamedir = /home/example/Games/ULTIMA6-pu6e
 gametype = fp
@@ -904,9 +908,16 @@ height = 768
 zoom = 1
 ```
 
-`[game:fp]` remembers the Ultima VI installation. `[pu6e]` represents the
-currently activated game and legacy-compatible renderer settings. `width`,
-`height`, and `zoom` configure the initial map display.
+`[game:fp]` remembers the Ultima VI installation. `[launcher]` stores the
+renderer and Vulkan GPU selected through the launcher's global Settings
+dialog. On first launch, Vulkan and **Automatic (recommended)** are selected.
+Automatic lets Vulkan choose the adapter; systems with multiple detected
+adapters can select a named GPU instead. The GPU row is hidden for Software and
+OpenGL. Saving a renderer or Vulkan GPU change offers **Restart now** and
+**Later**; choosing Later keeps the current renderer until pu6e Reloaded is
+restarted. `[pu6e]` represents the currently activated game and
+legacy-compatible display settings. `width`, `height`, and `zoom` configure the
+initial map display.
 
 Use the launcher whenever possible; manual configuration is only necessary for
 advanced troubleshooting. Existing repository-local `pu6e.conf` files are
