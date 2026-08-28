@@ -79,6 +79,23 @@ def test_ready_world_has_one_primary_stage_launch_action(
     assert atlas_launcher.stage.availability_button.isHidden()
 
 
+def test_unconfigured_diagnostic_is_not_elided_at_minimum_size(
+    tmp_path: Path, atlas_app: QApplication
+) -> None:
+    launcher = LauncherWindow(
+        GameProfileStore(tmp_path / "launcher.conf"),
+        RendererRuntime(RendererMode.OPENGL),
+    )
+    launcher.resize(860, 560)
+    launcher.show()
+    atlas_app.processEvents()
+
+    path_label = launcher.stage.path_label
+    assert path_label.text() == "No directory selected"
+    assert path_label.fontMetrics().horizontalAdvance(path_label.text()) <= path_label.width()
+    launcher.close()
+
+
 @pytest.mark.parametrize("game", ["fp", "md", "se"])
 def test_world_artwork_renders_into_a_native_qt_pixmap(
     atlas_launcher: LauncherWindow,
