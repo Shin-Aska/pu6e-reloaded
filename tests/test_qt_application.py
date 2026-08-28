@@ -285,6 +285,68 @@ def test_launcher_startup_allows_missing_configuration(
     assert not config_path.exists()
 
 
+def test_renderer_fallback_warning_opens_after_launcher_is_visible(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from PySide6 import QtWidgets
+    from pu6e_qt.game_profiles import GameProfileStore
+    import pu6e_qt.application as application_module
+    import pu6e_qt.canvas as canvas_module
+    import pu6e_qt.launcher as launcher_module
+    import pu6e_qt.theme as theme_module
+
+    class StubApplication:
+        def exec(self) -> int:
+            return 0
+
+    class StubLauncher:
+        def __init__(self, store: GameProfileStore) -> None:
+            self.store = store
+            self.shown = False
+
+        def show(self) -> None:
+            self.shown = True
+
+    config_path = tmp_path / "missing.conf"
+    launchers: list[StubLauncher] = []
+    warnings: list[tuple[StubLauncher, str, str]] = []
+    runtime = application_module.renderer_settings.RendererRuntime(
+        application_module.renderer_settings.RendererMode.OPENGL,
+        notice="Vulkan fallback",
+    )
+    monkeypatch.setattr(application_module, "_CONFIG_PATH", config_path)
+    monkeypatch.setattr(
+        application_module.renderer_settings,
+        "resolve_renderer",
+        lambda _renderer, _gpu: runtime,
+    )
+    monkeypatch.setattr(
+        application_module.renderer_settings,
+        "configure_renderer",
+        lambda *_arguments: None,
+    )
+    monkeypatch.setattr(QtWidgets, "QApplication", lambda _arguments: StubApplication())
+    monkeypatch.setattr(canvas_module, "configure_opengl_format", lambda: None)
+    monkeypatch.setattr(theme_module, "apply_theme", lambda _application: None)
+    monkeypatch.setattr(
+        launcher_module,
+        "LauncherWindow",
+        lambda store, _runtime: launchers.append(StubLauncher(store)) or launchers[-1],
+    )
+
+    def record_warning(parent: StubLauncher, title: str, message: str) -> None:
+        assert parent.shown
+        warnings.append((parent, title, message))
+
+    monkeypatch.setattr(QtWidgets.QMessageBox, "warning", record_warning)
+
+    application_module.main()
+
+    assert len(launchers) == 1
+    assert warnings == [(launchers[0], "Renderer fallback", runtime.notice)]
+
+
 def test_application_package_import_is_wx_free() -> None:
     import importlib
     import sys

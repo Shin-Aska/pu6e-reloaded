@@ -145,10 +145,10 @@ def main() -> None:
             f"Repair the configuration file at {_CONFIG_PATH}: {configuration_error.cause}",
         )
         return
+    window = LauncherWindow(store, runtime)
+    window.show()
     if runtime.notice is not None:
         from PySide6.QtWidgets import QMessageBox
 
-        QMessageBox.warning(None, "Renderer fallback", runtime.notice)
-    window = LauncherWindow(store, runtime)
-    window.show()
+        QMessageBox.warning(window, "Renderer fallback", runtime.notice)
     application.exec()
