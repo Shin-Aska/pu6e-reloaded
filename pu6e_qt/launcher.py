@@ -4,31 +4,46 @@ import struct
 from typing import Final
 
 from PySide6.QtCore import QEvent, QObject, Qt
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QMessageBox, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QHBoxLayout,
+    QLabel,
+    QMessageBox,
+    QSizePolicy,
+    QToolButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 import mapedit_gl as renderer
 from pu6e_qt.application import initialize_editor
+from pu6e_qt.application_restart import offer_renderer_restart, restart_application
 from pu6e_qt.game_profiles import GAMES, GameProfile, GameProfileStore
+from pu6e_qt.icons import action_icon
 from pu6e_qt.launcher_cards import GameCard
 from pu6e_qt.launcher_dialog import GameConfigurationDialog
+from pu6e_qt.launcher_settings import LauncherSettingsDialog
 from pu6e_qt.launcher_stage import WorldStage
 from pu6e_qt.launcher_style import launcher_stylesheet
 from pu6e_qt.main_window import MainWindow
+from pu6e_qt.renderer_settings import RendererRuntime
 from pu6e_qt.theme import THEME
 
 _MINIMUM_EDITOR_SIZE: Final = (1120, 760)
 
 
 class LauncherWindow(QWidget):
-    def __init__(self, store: GameProfileStore) -> None:
+    def __init__(self, store: GameProfileStore, renderer_runtime: RendererRuntime) -> None:
         super().__init__()
         self.store = store
+        self.renderer_runtime = renderer_runtime
         self.cards: dict[str, GameCard] = {}
         self.editor_window: MainWindow | None = None
         self.selected_game = GAMES[0].key
         self.setObjectName("pu6e-launcher")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        self.setWindowTitle("pu6e Reloaded — Choose your world")
+        self.setWindowTitle(
+            f"pu6e Reloaded — Choose your world [Renderer: {renderer_runtime.display_name}]"
+        )
         self.setMinimumSize(860, 560)
         self.resize(1040, 660)
         self.setStyleSheet(launcher_stylesheet())
@@ -64,7 +79,24 @@ class LauncherWindow(QWidget):
         rail_layout.addStretch()
         footer = QLabel("3 worlds in your library", rail)
         footer.setObjectName("launcher-footer")
+        self.settings_button = QToolButton(rail)
+        self.settings_button.setIcon(action_icon("settings"))
+        self.settings_button.setText("Settings")
+        self.settings_button.setToolButtonStyle(
+            Qt.ToolButtonStyle.ToolButtonTextBesideIcon
+        )
+        self.settings_button.setProperty("launcherRole", "launcherSettings")
+        self.settings_button.setAccessibleName("Renderer settings")
+        self.settings_button.setToolTip("Launcher settings: choose the world map renderer")
+        self.settings_button.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Preferred,
+        )
+        self.settings_button.setMinimumHeight(THEME.space_7)
+        self.settings_button.clicked.connect(self.configure_launcher)
         rail_layout.addWidget(footer)
+        rail_layout.addSpacing(THEME.space_2)
+        rail_layout.addWidget(self.settings_button)
 
         self.stage = WorldStage(store.profile(self.selected_game), self)
         self.stage.configure_requested.connect(self.configure_game)
@@ -87,6 +119,26 @@ class LauncherWindow(QWidget):
         dialog = GameConfigurationDialog(self.store, game, self)
         if dialog.exec() == dialog.DialogCode.Accepted:
             self._refresh_profile(self.store.profile(game))
+
+    def configure_launcher(self) -> None:
+        renderer = self.store.renderer
+        vulkan_gpu = self.store.vulkan_gpu
+        dialog = LauncherSettingsDialog(self.store, self)
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            return
+        graphics_changed = (
+            self.store.renderer is not renderer
+            or self.store.vulkan_gpu != vulkan_gpu
+        )
+        if graphics_changed and offer_renderer_restart(self):
+            if restart_application():
+                return
+            QMessageBox.critical(
+                self,
+                "Unable to restart",
+                "pu6e Reloaded could not start a replacement process. Your graphics "
+                "settings were saved; restart manually to apply them.",
+            )
 
     def launch_game(self, game: str) -> None:
         profile = self.store.profile(game)
@@ -133,7 +185,7 @@ class LauncherWindow(QWidget):
             )
             return
 
-        window = MainWindow(controller)
+        window = MainWindow(controller, self.renderer_runtime)
         window.resize(
             max(renderer.screen_width, _MINIMUM_EDITOR_SIZE[0]),
             max(renderer.screen_height, _MINIMUM_EDITOR_SIZE[1]),

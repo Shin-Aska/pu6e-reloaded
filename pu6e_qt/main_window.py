@@ -11,6 +11,7 @@ from pu6e_qt.actions import WorkbenchActions
 from pu6e_qt.canvas import MapCanvas
 from pu6e_qt.controller import EditorController
 from pu6e_qt.docks import EditorDocks, create_docks
+from pu6e_qt.renderer_settings import RendererRuntime
 
 
 GAME_NAMES: Final[dict[str, str]] = {
@@ -21,11 +22,13 @@ GAME_NAMES: Final[dict[str, str]] = {
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, controller: EditorController) -> None:
+    def __init__(self, controller: EditorController, renderer_runtime: RendererRuntime) -> None:
         super().__init__()
         self.controller = controller
         self.setObjectName("pu6e-workbench")
-        self.setWindowTitle("pu6e Reloaded — Ultima world editor")
+        self.setWindowTitle(
+            f"pu6e Reloaded — Ultima world editor [Renderer: {renderer_runtime.display_name}]"
+        )
         self.setMinimumSize(800, 560)
         self.setDockNestingEnabled(True)
         self.setDockOptions(

@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QApplication, QWidget
 
 from pu6e_qt.game_profiles import GameProfileStore
 from pu6e_qt.launcher import LauncherWindow
+from pu6e_qt.renderer_settings import RendererMode, RendererRuntime
 from test_core import write_game_fixture
 
 
@@ -23,7 +24,7 @@ def atlas_launcher(tmp_path: Path, atlas_app: QApplication) -> LauncherWindow:
         write_game_fixture(directory, game, game)
         store.set_directory(game, directory)
     (tmp_path / "md" / "savegame" / "objlist").unlink()
-    launcher = LauncherWindow(store)
+    launcher = LauncherWindow(store, RendererRuntime(RendererMode.OPENGL))
     launcher.show()
     atlas_app.processEvents()
     yield launcher

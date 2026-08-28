@@ -11,6 +11,7 @@ import mapedit_gl as renderer
 from test_core import write_game_fixture
 from U6 import obj
 from pu6e_qt.controller import EditorController
+from pu6e_qt.renderer_settings import RendererMode, RendererRuntime
 
 
 @pytest.fixture(scope="session")
@@ -44,7 +45,10 @@ def workbench(
     controller.load_game(game_dir, "fp")
     renderer.scale_factor = 1.0
     monkeypatch.setattr(workbench_module, "MapCanvas", StubCanvas)
-    window = workbench_module.MainWindow(controller)
+    window = workbench_module.MainWindow(
+        controller,
+        RendererRuntime(RendererMode.OPENGL),
+    )
     yield window
     window.close()
 
@@ -61,6 +65,15 @@ def test_workbench_composes_native_docks_and_position_status(workbench) -> None:
 
     assert "134" in workbench.location_label.text()
     assert "16c" in workbench.location_label.text()
+
+
+def test_workbench_title_identifies_the_active_renderer(workbench) -> None:
+    # Given: the workbench was opened under the resolved OpenGL runtime.
+    # When: the native window title is read.
+    title = workbench.windowTitle()
+
+    # Then: users can see the active backend throughout the editing session.
+    assert title.endswith("[Renderer: OpenGL]")
 
 
 def test_workbench_map_selection_updates_stack_and_object_properties(workbench) -> None:

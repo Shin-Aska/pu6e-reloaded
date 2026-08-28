@@ -8,6 +8,7 @@ from PySide6.QtWidgets import QApplication, QWidget
 
 from test_core import write_game_fixture
 from U6 import Config
+from pu6e_qt.renderer_settings import RendererMode, RendererRuntime
 
 
 @pytest.fixture(scope="session")
@@ -107,7 +108,7 @@ def test_launcher_only_enables_the_stage_launch_action_for_ready_games(
     store = GameProfileStore(tmp_path / "pu6e.conf")
     store.set_directory("fp", game_directory)
 
-    launcher = LauncherWindow(store)
+    launcher = LauncherWindow(store, RendererRuntime(RendererMode.OPENGL))
 
     assert launcher.stage.launch_button.isEnabled()
     assert launcher.cards["fp"].property("launcherReady") is True
@@ -131,7 +132,7 @@ def test_launcher_explains_missing_saved_world_files_with_hoverable_warning(
     store = GameProfileStore(tmp_path / "pu6e.conf")
     store.set_directory("md", game_directory)
 
-    launcher = LauncherWindow(store)
+    launcher = LauncherWindow(store, RendererRuntime(RendererMode.OPENGL))
 
     card = launcher.cards["md"]
     assert not card.availability_button.isHidden()
@@ -173,16 +174,24 @@ def test_launcher_opens_selected_game_in_editor(
     import pu6e_qt.launcher as launcher_module
 
     class StubEditor(QWidget):
-        def __init__(self, controller: EditorController) -> None:
+        def __init__(
+            self,
+            controller: EditorController,
+            renderer_runtime: RendererRuntime,
+        ) -> None:
             super().__init__()
             self.controller = controller
+            self.renderer_runtime = renderer_runtime
 
     game_directory = tmp_path / "savage"
     write_game_fixture(game_directory, "se", "savage")
     store = GameProfileStore(tmp_path / "pu6e.conf")
     store.set_directory("se", game_directory)
     monkeypatch.setattr(launcher_module, "MainWindow", StubEditor)
-    launcher = launcher_module.LauncherWindow(store)
+    launcher = launcher_module.LauncherWindow(
+        store,
+        RendererRuntime(RendererMode.OPENGL),
+    )
 
     launcher.cards["se"].click()
     launcher.stage.launch_button.click()

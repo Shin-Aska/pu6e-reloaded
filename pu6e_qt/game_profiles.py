@@ -8,6 +8,12 @@ from pathlib import Path
 from typing import Final, assert_never
 
 from U6 import Config, dospath, obj, pal
+from pu6e_qt.renderer_settings import (
+    RendererMode,
+    VulkanDeviceSelector,
+    read_renderer_mode,
+    read_vulkan_gpu,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -147,6 +153,8 @@ class GameProfileStore:
         self._configuration = ConfigParser()
         self._configuration.read(config_path)
         self._directories: dict[str, Path] = {}
+        self.renderer = read_renderer_mode(config_path)
+        self.vulkan_gpu = read_vulkan_gpu(config_path)
 
         if self._configuration.has_section("pu6e"):
             game = self._configuration.get("pu6e", "gametype", fallback="fp")
@@ -155,9 +163,7 @@ class GameProfileStore:
                 self._directories[game] = self._resolve(directory)
 
         for specification in GAMES:
-            directory = self._configuration.get(
-                f"game:{specification.key}", "gamedir", fallback=""
-            )
+            directory = self._configuration.get(f"game:{specification.key}", "gamedir", fallback="")
             if directory:
                 self._directories[specification.key] = self._resolve(directory)
 
@@ -211,6 +217,50 @@ class GameProfileStore:
     def set_directory(self, game: str, directory: Path) -> None:
         self._directories[game] = directory.expanduser().resolve()
         self._write()
+
+    def set_renderer(self, renderer: RendererMode) -> None:
+        self.set_renderer_preferences(renderer, self.vulkan_gpu)
+
+    def set_renderer_preferences(
+        self,
+        renderer: RendererMode,
+        vulkan_gpu: VulkanDeviceSelector | None,
+    ) -> None:
+        had_section = self._configuration.has_section("launcher")
+        if not had_section:
+            self._configuration.add_section("launcher")
+        previous_renderer = self._configuration.get(
+            "launcher",
+            "renderer",
+            fallback=None,
+        )
+        previous_vulkan_gpu = self._configuration.get(
+            "launcher",
+            "vulkan_gpu",
+            fallback=None,
+        )
+        self._configuration.set("launcher", "renderer", renderer.value)
+        self._configuration.set(
+            "launcher",
+            "vulkan_gpu",
+            vulkan_gpu if vulkan_gpu is not None else "auto",
+        )
+        try:
+            self._write()
+        except OSError:
+            for name, previous in (
+                ("renderer", previous_renderer),
+                ("vulkan_gpu", previous_vulkan_gpu),
+            ):
+                if previous is None:
+                    self._configuration.remove_option("launcher", name)
+                else:
+                    self._configuration.set("launcher", name, previous)
+            if not had_section:
+                self._configuration.remove_section("launcher")
+            raise
+        self.renderer = renderer
+        self.vulkan_gpu = vulkan_gpu
 
     def activate(self, game: str) -> None:
         profile = self.profile(game)

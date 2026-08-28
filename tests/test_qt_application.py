@@ -245,6 +245,18 @@ def test_launcher_startup_allows_missing_configuration(
     errors: list[tuple[None, str, str]] = []
     monkeypatch.setattr(application_module, "_CONFIG_PATH", config_path)
     monkeypatch.setattr(
+        application_module.renderer_settings,
+        "resolve_renderer",
+        lambda renderer, _gpu: application_module.renderer_settings.RendererRuntime(
+            renderer
+        ),
+    )
+    monkeypatch.setattr(
+        application_module.renderer_settings,
+        "configure_renderer",
+        lambda *_arguments: None,
+    )
+    monkeypatch.setattr(
         QtWidgets,
         "QApplication",
         lambda arguments: applications.append(StubApplication(arguments)) or applications[-1],
@@ -254,7 +266,7 @@ def test_launcher_startup_allows_missing_configuration(
     monkeypatch.setattr(
         launcher_module,
         "LauncherWindow",
-        lambda store: launchers.append(StubLauncher(store)) or launchers[-1],
+        lambda store, _runtime: launchers.append(StubLauncher(store)) or launchers[-1],
     )
     monkeypatch.setattr(
         QtWidgets.QMessageBox,

@@ -12,6 +12,7 @@ from pu6e_qt.application import RuntimeConfiguration
 from pu6e_qt.controller import EditorController
 from pu6e_qt.game_profiles import GameProfile
 from pu6e_qt.launcher import LauncherWindow
+from pu6e_qt.renderer_settings import RendererMode, RendererRuntime
 
 
 @pytest.fixture(scope="session")
@@ -37,7 +38,7 @@ def _configured_launcher(tmp_path: Path, game: str) -> tuple[LauncherWindow, Pat
     write_game_fixture(game_directory, game, game)
     store = GameProfileStore(tmp_path / "pu6e.conf")
     store.set_directory(game, game_directory)
-    launcher = LauncherWindow(store)
+    launcher = LauncherWindow(store, RendererRuntime(RendererMode.OPENGL))
     launcher.show()
     return launcher, game_directory
 
@@ -235,9 +236,14 @@ def test_launcher_can_retry_after_restoring_game_files(
     import pu6e_qt.launcher as launcher_module
 
     class StubEditor(QWidget):
-        def __init__(self, controller: EditorController) -> None:
+        def __init__(
+            self,
+            controller: EditorController,
+            renderer_runtime: RendererRuntime,
+        ) -> None:
             super().__init__()
             self.controller = controller
+            self.renderer_runtime = renderer_runtime
 
     launcher, game_directory = _configured_launcher(tmp_path, "fp")
     palette = game_directory / "u6pal"

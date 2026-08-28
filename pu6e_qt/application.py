@@ -11,6 +11,7 @@ from U6 import Config
 
 from pu6e_qt.configuration import migrate_legacy_configuration, user_configuration_path
 from pu6e_qt.controller import EditorController
+from pu6e_qt import renderer_settings
 
 _CONFIG_PATH: Final = user_configuration_path()
 _INITIAL_POSITION: Final = (0x134, 0x16C, 0)
@@ -114,6 +115,14 @@ def initialize_editor(config_path: Path = _CONFIG_PATH) -> EditorController:
 def main() -> None:
     from pu6e_qt.canvas import configure_opengl_format
 
+    requested_renderer = renderer_settings.read_renderer_mode(_CONFIG_PATH)
+    requested_vulkan_gpu = renderer_settings.read_vulkan_gpu(_CONFIG_PATH)
+    runtime = renderer_settings.resolve_renderer(requested_renderer, requested_vulkan_gpu)
+    renderer_settings.configure_renderer(
+        runtime.renderer,
+        runtime.software_vulkan,
+        runtime.vulkan_gpu,
+    )
     configure_opengl_format()
 
     from PySide6.QtWidgets import QApplication
@@ -136,6 +145,10 @@ def main() -> None:
             f"Repair the configuration file at {_CONFIG_PATH}: {configuration_error.cause}",
         )
         return
-    window = LauncherWindow(store)
+    if runtime.notice is not None:
+        from PySide6.QtWidgets import QMessageBox
+
+        QMessageBox.warning(None, "Renderer fallback", runtime.notice)
+    window = LauncherWindow(store, runtime)
     window.show()
     application.exec()

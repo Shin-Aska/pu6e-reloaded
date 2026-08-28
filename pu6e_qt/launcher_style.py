@@ -3,10 +3,52 @@ from __future__ import annotations
 from pu6e_qt.theme import THEME
 
 
+def launcher_gpu_list_stylesheet() -> str:
+    return f"""
+        QComboBoxListView {{
+            background: {THEME.surface_panel};
+            border: 1px solid {THEME.border_default};
+            color: {THEME.text_secondary};
+            outline: none;
+        }}
+        QComboBoxListView::item {{
+            padding: {THEME.space_1}px {THEME.space_2}px;
+        }}
+    """
+
+
 def launcher_stylesheet() -> str:
     return f"""
-        QWidget[objectName="pu6e-launcher"], QDialog[objectName="game-configurator"] {{
+        QWidget[objectName="pu6e-launcher"], QDialog[objectName="game-configurator"],
+        QDialog[objectName="launcher-settings"] {{
             background: {THEME.surface_canvas};
+        }}
+        QMessageBox[objectName="renderer-restart-dialog"] {{
+            background: {THEME.surface_canvas};
+        }}
+        QMessageBox[objectName="renderer-restart-dialog"] QLabel {{
+            color: {THEME.text_secondary};
+        }}
+        QMessageBox[objectName="renderer-restart-dialog"] QLabel#qt_msgbox_label {{
+            color: {THEME.text_primary};
+            font-size: {THEME.title_size}px;
+            font-weight: 600;
+        }}
+        QDialog[objectName="launcher-settings"] QLabel {{
+            color: {THEME.text_secondary};
+        }}
+        QDialog[objectName="launcher-settings"] QComboBox {{
+            background: {THEME.surface_elevated};
+            border: 1px solid {THEME.border_default};
+            border-radius: {THEME.control_radius}px;
+            color: {THEME.text_secondary};
+            min-height: {THEME.space_7}px;
+            padding: 0 {THEME.space_3}px;
+        }}
+        QDialog[objectName="launcher-settings"] QComboBox:hover,
+        QDialog[objectName="launcher-settings"] QComboBox:focus {{
+            border-color: {THEME.accent_primary};
+            color: {THEME.text_primary};
         }}
         QWidget[objectName="atlas-world-rail"] {{
             background: {THEME.surface_launcher_rail};
@@ -144,6 +186,19 @@ def launcher_stylesheet() -> str:
             border: 1px solid transparent;
             border-radius: {THEME.control_radius}px;
             padding: {THEME.space_1}px;
+        }}
+        QToolButton[launcherRole="launcherSettings"] {{
+            background: {THEME.surface_panel};
+            border: 1px solid {THEME.border_subtle};
+            border-radius: {THEME.control_radius}px;
+            color: {THEME.text_secondary};
+            padding: {THEME.space_2}px {THEME.space_3}px;
+            text-align: left;
+        }}
+        QToolButton[launcherRole="launcherSettings"]:hover {{
+            background: {THEME.surface_hover};
+            border-color: {THEME.border_default};
+            color: {THEME.text_primary};
         }}
         QToolButton[launcherRole="settingsButton"]:hover,
         QToolButton[launcherRole="warningButton"]:hover {{
