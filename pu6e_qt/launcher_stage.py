@@ -130,7 +130,7 @@ class WorldStage(WorldArtwork):
             self.status_label.setText("Game files are unavailable")
             self.status_label.setToolTip("")
 
-        path = str(profile.directory) if profile.directory is not None else "No directory selected"
+        path = str(profile.directory) if profile.directory is not None else "No folder selected"
         available_width = max(THEME.launcher_rail_width, self.width() - 2 * THEME.space_8)
         self.path_label.setText(
             self.path_label.fontMetrics().elidedText(path, Qt.TextElideMode.ElideMiddle, available_width)

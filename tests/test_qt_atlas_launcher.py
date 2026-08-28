@@ -91,7 +91,7 @@ def test_unconfigured_diagnostic_is_not_elided_at_minimum_size(
     atlas_app.processEvents()
 
     path_label = launcher.stage.path_label
-    assert path_label.text() == "No directory selected"
+    assert path_label.text() == "No folder selected"
     assert path_label.fontMetrics().horizontalAdvance(path_label.text()) <= path_label.width()
     launcher.close()
 
