@@ -49,6 +49,41 @@ its bundled components.
 
 Retain the applicable upstream notices when redistributing PyOpenGL.
 
+## Mesa Zink and Lavapipe (Windows packages)
+
+- Project: <https://www.mesa3d.org/>.
+- Windows binaries: Mesa 26.2.2 from
+  <https://github.com/mmozeiko/build-mesa/releases/tag/26.2.2>.
+- Zink translates OpenGL to Vulkan; Lavapipe provides software Vulkan rendering.
+- Mesa's core uses the MIT license; individual components have their own terms.
+  The matching source distribution's `docs/license.rst` and complete `licenses/`
+  directory are included under `mesa/licenses/mesa-26.2.2/` in the application
+  runtime directory.
+- Lavapipe includes LLVM 23.1.0. Its Apache-2.0 license with LLVM exceptions and
+  legacy notices are included as `mesa/licenses/llvm-23.1.0/LICENSE.TXT`.
+- Matching upstream sources:
+  <https://archive.mesa3d.org/mesa-26.2.2.tar.xz> and
+  <https://github.com/llvm/llvm-project/tree/llvmorg-23.1.0>.
+- The binary builder and its dependency configuration are recorded at
+  <https://github.com/mmozeiko/build-mesa/tree/26.2.2>.
+
+The packaging script downloads these pinned binaries and upstream license
+resources, verifies their SHA-256 checksums, and includes the license texts
+alongside the drivers. In the portable package the runtime directory is
+`_internal`; the standalone executable extracts its runtime when launched.
+
+## Vulkan loader (Windows packages)
+
+- Project: <https://github.com/KhronosGroup/Vulkan-Loader>.
+- Binary: the x64 `vulkan-1.dll` from LunarG's Vulkan Runtime 1.4.357.0
+  [components archive](https://sdk.lunarg.com/sdk/download/1.4.357.0/windows/VulkanRT-X64-1.4.357.0-Components.zip).
+- The loader is bundled under `mesa/vulkan-1.dll` so software Vulkan rendering
+  does not require a separately installed Vulkan runtime.
+- The archive's `VulkanRT-License.txt` contains the upstream copyright and MIT
+  notices and Apache-2.0 attribution. It is included with the full Apache-2.0
+  license under `mesa/licenses/vulkan-1.4.357.0/` in the application runtime.
+- Release and published checksum: <https://vulkan.lunarg.com/sdk/home>.
+
 ## Proprietary game assets
 
 The supported games, their artwork, game files, saved games, names, and

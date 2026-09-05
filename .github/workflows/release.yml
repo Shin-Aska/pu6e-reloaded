@@ -152,6 +152,13 @@ jobs:
         shell: pwsh
         run: ./packaging/build-windows.ps1
 
+      - name: Render through Vulkan in both Windows distributions
+        shell: pwsh
+        run: |
+          ./packaging/smoke-windows-vulkan.ps1 -Executable ./dist/windows/pu6e-reloaded/pu6e-reloaded.exe
+          $executable = Get-ChildItem ./dist/release/*-windows-x86_64.exe
+          ./packaging/smoke-windows-vulkan.ps1 -Executable $executable.FullName
+
       - name: Launch the portable Windows executable
         shell: pwsh
         run: ./packaging/smoke-windows.ps1 -Executable ./dist/windows/pu6e-reloaded/pu6e-reloaded.exe

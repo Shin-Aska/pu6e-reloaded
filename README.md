@@ -77,6 +77,11 @@ The ZIP distributions contain an executable `pu6e-reloaded` application folder.
 Linux builds still need a compatible desktop OpenGL implementation; all builds
 require separately obtained original game files and a saved game.
 
+Windows downloads include Mesa Zink, the Vulkan loader, and a CPU Vulkan
+fallback. No separate Mesa installation or Vulkan SDK is needed. Automatic
+GPU selection prefers a discrete GPU when Windows exposes one. Native OpenGL
+remains available in Settings.
+
 ## Install
 
 On Ubuntu 24.04 or Linux Mint 22.x, install the required system packages for
@@ -159,6 +164,13 @@ bash packaging/build-linux.sh
 On a Windows machine, use `./packaging/build-windows.ps1` instead. GitHub Actions
 tests both operating systems, uploads all four distributions for every build,
 and publishes them with SHA-256 checksums whenever a `v*` tag is pushed.
+
+The Windows build downloads checksum-pinned graphics
+runtimes into `build/mesa`. To enable the same Vulkan runtime when running
+from source, run `./packaging/prepare-windows-mesa.ps1` once. Release checks
+render and read back pixels through the bundled CPU Vulkan driver in both
+Windows formats; `./packaging/smoke-windows-vulkan.ps1 -Executable PATH -Hardware`
+also checks hardware Vulkan on a machine with a compatible GPU driver.
 
 The original documentation and technical references are retained for historical
 reference.
