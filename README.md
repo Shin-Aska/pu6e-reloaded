@@ -84,48 +84,53 @@ remains available in Settings.
 
 ## Install
 
-On Ubuntu 24.04 or Linux Mint 22.x, install the required system packages for
-Git, Qt's X11/XCB platform integration, and desktop OpenGL:
-
-```console
-sudo apt update
-sudo apt install \
-  git curl ca-certificates \
-  libgl1 libegl1 libgl1-mesa-dri \
-  libxkbcommon-x11-0 \
-  libxcb-cursor0 libxcb-glx0 libxcb-icccm4 libxcb-image0 \
-  libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 \
-  libxcb-shape0 libxcb-xinerama0 libxcb-xkb1
-```
-
-Install `uv` if it is not already available, then reopen your terminal:
-
-```console
-curl -LsSf https://astral.sh/uv/install.sh | sh
-uv --version
-```
-
-Clone the repository, install Python 3.14, create the virtual environment,
-and install the locked Python packages:
+Clone or download the repository, then run its setup script. Python and `uv`
+do not need to be installed beforehand. If you use Git:
 
 ```console
 git clone https://gitlab.com/ShinAska/pu6e-reloaded.git
 cd pu6e-reloaded
-uv python install 3.14
-uv venv --python 3.14
-uv sync --locked
 ```
 
-`uv sync --locked` installs **NumPy**, **PyOpenGL**, **PySide6/Qt 6**,
-PySide6's required support packages, and the development dependency
-**pytest**. Use `uv sync --locked --no-dev` to omit development packages.
-Inspect the installation with `uv tree --depth 2` and `uv pip check`.
+**Windows x86-64**, in the built-in Windows PowerShell:
 
-Start the native game launcher:
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1
+.\.venv\Scripts\python.exe .\pu6e.py
+```
+
+**Linux or macOS**, in a terminal:
+
+```sh
+bash setup.sh
+.venv/bin/python pu6e.py
+```
+
+Both scripts create `.venv` with Python 3.14 and install the locked application,
+test, and packaging dependencies, including NumPy, PySide6/Qt, PyOpenGL, pytest,
+and PyInstaller. Missing Python versions are downloaded automatically. They
+reuse `uv` when available, otherwise install a pinned copy in `build/tools`
+without editing your shell profile or global PATH. You can rerun setup safely.
+
+Windows setup also downloads and prepares the bundled Vulkan runtime. Linux
+setup installs missing desktop and packaging libraries with `apt` on Debian,
+Ubuntu, and Linux Mint; it uses `sudo` when administrator access is needed.
+On other Linux distributions, install the system libraries listed by
+`bash setup.sh --help` and the script's diagnostic, then use
+`bash setup.sh --skip-system-packages`.
+
+macOS setup supports Intel and Apple Silicon on macOS 13 or later, following
+[Qt's platform requirements](https://doc.qt.io/qt-6/supported-platforms.html).
+It uses the system graphics frameworks and does not require Homebrew. macOS
+packaged releases and bundled Vulkan are not currently provided.
+
+After setup, tests can be run directly without activating the environment:
 
 ```console
-.venv/bin/pu6e
+.venv/bin/python -m pytest -q
 ```
+
+On Windows, use `.venv\Scripts\python.exe -m pytest -q` instead.
 
 ![Unconfigured pu6e Reloaded game launcher](docs/images/manual/01-first-launch-unconfigured.png)
 
@@ -146,8 +151,9 @@ Ultima VI file-format research.
 
 ## Development
 
-Sync the development environment with host `uv`, then run the test suite from
-the virtual environment:
+Run the setup script above first. If `uv` was installed locally, use
+`build/tools/uv` (`build\tools\uv.exe` on Windows) in place of `uv` below,
+or add that directory to your terminal's PATH. To refresh the environment:
 
 ```console
 uv sync

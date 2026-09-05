@@ -1,0 +1,49 @@
+name: Verify repository setup
+
+on:
+  push:
+    paths:
+      - setup.ps1
+      - setup.sh
+      - .python-version
+      - pyproject.toml
+      - uv.lock
+      - packaging/prepare-windows-mesa.ps1
+      - .github/workflows/setup.yml
+  pull_request:
+    paths:
+      - setup.ps1
+      - setup.sh
+      - .python-version
+      - pyproject.toml
+      - uv.lock
+      - packaging/prepare-windows-mesa.ps1
+      - .github/workflows/setup.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  setup:
+    name: Setup on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025, macos-latest]
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Bootstrap and repeat Windows setup
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          ./setup.ps1
+          ./setup.ps1
+      - name: Bootstrap and repeat Linux or macOS setup
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          bash setup.sh
+          bash setup.sh

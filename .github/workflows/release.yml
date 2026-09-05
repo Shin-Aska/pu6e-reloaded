@@ -87,7 +87,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            desktop-file-utils libegl1 libgl1 libgl1-mesa-dri \
+            desktop-file-utils file libegl1 libgl1 libgl1-mesa-dri \
             libglu1-mesa libxkbcommon-x11-0 libxcb-cursor0 \
             libxcb-glx0 libxcb-icccm4 libxcb-image0 \
             libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 \
