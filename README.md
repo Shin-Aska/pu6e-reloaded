@@ -178,6 +178,34 @@ render and read back pixels through the bundled CPU Vulkan driver in both
 Windows formats; `./packaging/smoke-windows-vulkan.ps1 -Executable PATH -Hardware`
 also checks hardware Vulkan on a machine with a compatible GPU driver.
 
+### VS Code
+
+Open this folder in VS Code and install its recommended Python extensions.
+In **Run and Debug**, select the entry matching the operating system where
+VS Code is running, then press **F5**:
+
+- **Run editor (Windows)** runs **Setup (Windows)** using `setup.ps1`, prepares
+  the Vulkan runtime, and starts the debugger with `.venv/Scripts/python.exe`.
+- **Run editor (Linux)** runs **Setup (Linux)** using `setup.sh` and starts the
+  debugger with `.venv/bin/python`. For WSL, open the repository in a VS Code
+  WSL window before choosing this entry.
+
+Both setup tasks install `uv`, Python, and project dependencies when missing.
+Use **Terminal > Run Task** and the matching **Setup** task to prepare the
+environment without launching.
+
+The following build and run tasks are currently for Windows:
+
+- **Ctrl+Shift+B** runs **Compile** to build both Windows distributions in
+  `dist/release`.
+- **Terminal > Run Task > Run** starts the editor from source after setup.
+- **Terminal > Run Task > Compile and run** builds and opens the portable app.
+
+Close a running packaged copy before rebuilding its executable.
+Windows setup and compilation use the built-in PowerShell by its absolute path,
+so a separate PowerShell 7 installation is not required. The release smoke-check
+scripts use PowerShell 7.
+
 The original documentation and technical references are retained for historical
 reference.
 The original 2003 README, installation instructions, and copyright notice are
