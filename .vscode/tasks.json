@@ -1,0 +1,53 @@
+{
+    "version": "2.0.0",
+    "options": {
+        "cwd": "${workspaceFolder}"
+    },
+    "windows": {
+        "options": {
+            "env": {
+                "PATH": "${workspaceFolder}\\build\\tools;${env:PATH}"
+            }
+        }
+    },
+    "tasks": [
+        {
+            "label": "Setup (Windows)",
+            "type": "process",
+            "command": "${env:SystemRoot}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+            "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/setup.ps1"],
+            "problemMatcher": []
+        },
+        {
+            "label": "Setup (Linux)",
+            "type": "process",
+            "command": "bash",
+            "args": ["${workspaceFolder}/setup.sh"],
+            "problemMatcher": []
+        },
+        {
+            "label": "Compile",
+            "type": "process",
+            "command": "${env:SystemRoot}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+            "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/packaging/build-windows.ps1"],
+            "dependsOn": "Setup (Windows)",
+            "group": {"kind": "build", "isDefault": true},
+            "problemMatcher": []
+        },
+        {
+            "label": "Run",
+            "type": "process",
+            "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+            "args": ["${workspaceFolder}/pu6e.py"],
+            "dependsOn": "Setup (Windows)",
+            "problemMatcher": []
+        },
+        {
+            "label": "Compile and run",
+            "type": "process",
+            "command": "${workspaceFolder}/dist/windows/pu6e-reloaded/pu6e-reloaded.exe",
+            "dependsOn": "Compile",
+            "problemMatcher": []
+        }
+    ]
+}

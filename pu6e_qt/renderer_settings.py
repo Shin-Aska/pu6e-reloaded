@@ -9,6 +9,8 @@ from typing import Final, assert_never
 
 from PySide6.QtCore import QCoreApplication, Qt
 
+from pu6e_qt.windows_mesa import configure_windows_mesa, register_opengl_platform
+
 from pu6e_qt.renderer_preferences import (
     RENDERER_MODES,
     RendererMode,
@@ -29,6 +31,7 @@ _GRAPHICS_ENVIRONMENT: Final = (
     "LIBGL_KOPPER_DRI2",
     "QSG_RHI_BACKEND",
     "MESA_VK_DEVICE_SELECT",
+    "QT_OPENGL_DLL",
 )
 
 
@@ -77,6 +80,8 @@ def _set_renderer_environment(
         case unreachable:
             assert_never(unreachable)
 
+    configure_windows_mesa(environment)
+
 
 def configure_renderer(
     renderer: RendererMode,
@@ -84,37 +89,14 @@ def configure_renderer(
     vulkan_gpu: VulkanDeviceSelector | None = None,
 ) -> None:
     _set_renderer_environment(renderer, os.environ, software_vulkan, vulkan_gpu)
-
-    match renderer:
-        case RendererMode.SOFTWARE:
-            QCoreApplication.setAttribute(
-                Qt.ApplicationAttribute.AA_UseSoftwareOpenGL,
-                True,
-            )
-            QCoreApplication.setAttribute(
-                Qt.ApplicationAttribute.AA_UseDesktopOpenGL,
-                False,
-            )
-        case RendererMode.OPENGL:
-            QCoreApplication.setAttribute(
-                Qt.ApplicationAttribute.AA_UseSoftwareOpenGL,
-                False,
-            )
-            QCoreApplication.setAttribute(
-                Qt.ApplicationAttribute.AA_UseDesktopOpenGL,
-                True,
-            )
-        case RendererMode.VULKAN:
-            QCoreApplication.setAttribute(
-                Qt.ApplicationAttribute.AA_UseSoftwareOpenGL,
-                False,
-            )
-            QCoreApplication.setAttribute(
-                Qt.ApplicationAttribute.AA_UseDesktopOpenGL,
-                True,
-            )
-        case unreachable:
-            assert_never(unreachable)
+    register_opengl_platform()
+    use_custom_library = os.environ["QT_OPENGL"] == "software"
+    QCoreApplication.setAttribute(
+        Qt.ApplicationAttribute.AA_UseSoftwareOpenGL, use_custom_library,
+    )
+    QCoreApplication.setAttribute(
+        Qt.ApplicationAttribute.AA_UseDesktopOpenGL, not use_custom_library,
+    )
 
 
 def _probe_vulkan_environment(
@@ -140,7 +122,7 @@ def _probe_vulkan_environment(
             env=environment,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
-            timeout=8,
+            timeout=30 if getattr(sys, "frozen", False) else 8,
         )
     except (OSError, subprocess.TimeoutExpired):
         return False

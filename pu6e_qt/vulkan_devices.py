@@ -7,6 +7,7 @@ import struct
 import sys
 from dataclasses import dataclass
 from enum import StrEnum
+from functools import cache
 from pathlib import Path
 from typing import Final, NewType
 
@@ -105,7 +106,9 @@ def _library_names() -> tuple[str, ...]:
     discovered = ctypes.util.find_library("vulkan")
     match sys.platform:
         case "win32":
-            names = ("vulkan-1.dll", discovered)
+            from pu6e_qt.windows_vulkan import mesa_directory
+
+            names = (str(mesa_directory() / "vulkan-1.dll"), "vulkan-1.dll", discovered)
         case "darwin":
             names = ("libvulkan.1.dylib", "libvulkan.dylib", discovered)
         case _:
@@ -122,6 +125,7 @@ def _load_vulkan_library() -> ctypes.CDLL | None:
     return None
 
 
+@cache
 def list_vulkan_devices() -> tuple[VulkanDevice, ...]:
     library = _load_vulkan_library()
     if library is None:

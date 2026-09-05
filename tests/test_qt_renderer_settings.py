@@ -99,11 +99,12 @@ def test_vulkan_gpu_preference_persists_with_renderer(tmp_path: Path) -> None:
         (RendererMode.VULKAN, True),
     ),
 )
-def test_renderer_configures_graphics_environment_before_qt_startup(
+def test_linux_renderer_configures_graphics_environment_before_qt_startup(
     monkeypatch: pytest.MonkeyPatch,
     renderer: RendererMode,
     software_vulkan: bool,
 ) -> None:
+    monkeypatch.setattr("sys.platform", "linux")
     # Given: graphics overrides inherited from another renderer mode.
     for name in (
         "QT_OPENGL",

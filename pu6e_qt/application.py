@@ -4,14 +4,15 @@ import configparser
 from dataclasses import dataclass
 from pathlib import Path
 import sys
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
-import mapedit_gl as renderer
 from U6 import Config
 
 from pu6e_qt.configuration import migrate_legacy_configuration, user_configuration_path
-from pu6e_qt.controller import EditorController
 from pu6e_qt import renderer_settings
+
+if TYPE_CHECKING:
+    from pu6e_qt.controller import EditorController
 
 _CONFIG_PATH: Final = user_configuration_path()
 _INITIAL_POSITION: Final = (0x134, 0x16C, 0)
@@ -102,6 +103,9 @@ def read_configuration(config_path: Path) -> RuntimeConfiguration:
 
 
 def initialize_editor(config_path: Path = _CONFIG_PATH) -> EditorController:
+    import mapedit_gl as renderer
+    from pu6e_qt.controller import EditorController
+
     configuration = read_configuration(config_path)
     controller = EditorController()
     controller.load_game(configuration.game_directory, configuration.game_type)
@@ -113,8 +117,6 @@ def initialize_editor(config_path: Path = _CONFIG_PATH) -> EditorController:
 
 
 def main() -> None:
-    from pu6e_qt.canvas import configure_opengl_format
-
     requested_renderer = renderer_settings.read_renderer_mode(_CONFIG_PATH)
     requested_vulkan_gpu = renderer_settings.read_vulkan_gpu(_CONFIG_PATH)
     runtime = renderer_settings.resolve_renderer(requested_renderer, requested_vulkan_gpu)
@@ -123,6 +125,8 @@ def main() -> None:
         runtime.software_vulkan,
         runtime.vulkan_gpu,
     )
+    from pu6e_qt.canvas import configure_opengl_format
+
     configure_opengl_format()
 
     from PySide6.QtWidgets import QApplication

@@ -1,0 +1,29 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run editor (Windows)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/pu6e.py",
+            "python": "${workspaceFolder}/.venv/Scripts/python.exe",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "subProcess": false,
+            "preLaunchTask": "Setup (Windows)"
+        },
+        {
+            "name": "Run editor (Linux)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/pu6e.py",
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "subProcess": false,
+            "preLaunchTask": "Setup (Linux)"
+        }
+    ]
+}

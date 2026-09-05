@@ -911,13 +911,20 @@ zoom = 1
 `[game:fp]` remembers the Ultima VI installation. `[launcher]` stores the
 renderer and Vulkan GPU selected through the launcher's global Settings
 dialog. On first launch, Vulkan and **Automatic (recommended)** are selected.
-Automatic lets Vulkan choose the adapter; systems with multiple detected
+On Windows, Automatic prefers a discrete GPU; on other systems it lets Vulkan
+choose the adapter. Systems with multiple detected
 adapters can select a named GPU instead. The GPU row is hidden for Software and
 OpenGL. Saving a renderer or Vulkan GPU change offers **Restart now** and
 **Later**; choosing Later keeps the current renderer until pu6e Reloaded is
 restarted. `[pu6e]` represents the currently activated game and
 legacy-compatible display settings. `width`, `height`, and `zoom` configure the
 initial map display.
+
+Windows distributions include the graphics libraries needed for Vulkan:
+Mesa Zink, the Vulkan loader, and a CPU Vulkan fallback. There is no separate
+Mesa or Vulkan SDK installation step. If the selected GPU fails its rendering
+check, startup tries Automatic, then CPU Vulkan, then native OpenGL. The window
+title identifies the renderer that actually started.
 
 Use the launcher whenever possible; manual configuration is only necessary for
 advanced troubleshooting. Existing repository-local `pu6e.conf` files are

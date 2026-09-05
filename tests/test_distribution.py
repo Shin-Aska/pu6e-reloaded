@@ -21,11 +21,11 @@ def test_packaging_dependency_group_contains_pyinstaller() -> None:
     assert any(dependency.startswith("pyinstaller>=") for dependency in packaging_dependencies)
 
 
-@pytest.mark.parametrize("build_script", ("build-linux.sh", "build-windows.ps1"))
+@pytest.mark.parametrize("build_script", ("build-linux.sh", "windows.spec"))
 def test_packaged_applications_include_dynamic_opengl_platform_backends(build_script: str) -> None:
     arguments = (_PROJECT_ROOT / "packaging" / build_script).read_text(encoding="utf-8")
 
-    assert "--collect-submodules" in arguments
+    assert "--collect-submodules" in arguments or "collect_submodules(" in arguments
     assert "OpenGL.platform" in arguments
 
 

@@ -87,7 +87,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            desktop-file-utils libegl1 libgl1 libgl1-mesa-dri \
+            desktop-file-utils file libegl1 libgl1 libgl1-mesa-dri \
             libglu1-mesa libxkbcommon-x11-0 libxcb-cursor0 \
             libxcb-glx0 libxcb-icccm4 libxcb-image0 \
             libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 \
@@ -152,15 +152,28 @@ jobs:
         shell: pwsh
         run: ./packaging/build-windows.ps1
 
-      - name: Launch the portable Windows executable
+      - name: Render and launch both Windows distributions as a limited user
         shell: pwsh
-        run: ./packaging/smoke-windows.ps1 -Executable ./dist/windows/pu6e-reloaded/pu6e-reloaded.exe
-
-      - name: Launch the standalone Windows executable
-        shell: pwsh
+        timeout-minutes: 5
         run: |
-          $executable = Get-ChildItem ./dist/release/*-windows-x86_64.exe
-          ./packaging/smoke-windows.ps1 -Executable $executable.FullName
+          # Vulkan ignores bundled driver overrides in the runner's elevated token.
+          $psExec = Join-Path $env:RUNNER_TEMP "PsExec64.exe"
+          Invoke-WebRequest https://live.sysinternals.com/PsExec64.exe -OutFile $psExec
+          $expectedHash = "EDFAE1A69522F87B12C6DAC3225D930E4848832E3C551EE1E7D31736BF4525EF"
+          if ((Get-FileHash $psExec -Algorithm SHA256).Hash -ne $expectedHash) {
+            throw "PsExec checksum mismatch."
+          }
+          $runtime = Join-Path $env:RUNNER_TEMP "pu6e-limited-user"
+          New-Item -ItemType Directory -Path $runtime | Out-Null
+          icacls $runtime /setintegritylevel '(OI)(CI)L'
+          if ($LASTEXITCODE -ne 0) { throw "Could not prepare limited-user temporary storage." }
+          $session = (Get-Process -Id $PID).SessionId
+          & $psExec -accepteula -nobanner -l -i $session -w $PWD.Path `
+            (Get-Command pwsh).Source -NoProfile -File "$PWD/packaging/smoke-windows-ci.ps1" `
+            -RuntimeDirectory $runtime
+          $smokeExitCode = $LASTEXITCODE
+          Get-Content -LiteralPath (Join-Path $runtime "smoke.log")
+          if ($smokeExitCode -ne 0) { throw "Windows package smoke checks failed (exit $smokeExitCode)." }
 
       - name: Validate the portable Windows ZIP
         shell: pwsh

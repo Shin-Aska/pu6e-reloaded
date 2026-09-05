@@ -13,6 +13,7 @@ $application = Start-Process `
     -FilePath $executablePath `
     -RedirectStandardError $errorLog `
     -PassThru
+$windowProcess = $null
 
 try {
     $deadline = [DateTime]::UtcNow.AddSeconds(90)
@@ -38,6 +39,7 @@ try {
         foreach ($candidate in $candidates) {
             $candidate.Refresh()
             if ($candidate.MainWindowTitle -like "pu6e Reloaded*") {
+                $windowProcess = $candidate
                 Write-Host "Verified packaged launcher window: $executablePath"
                 return
             }
@@ -48,7 +50,12 @@ try {
 
     throw "Timed out waiting for the packaged launcher window."
 } finally {
-    if (-not $application.HasExited) {
-        Stop-Process -Id $application.Id -Force -ErrorAction SilentlyContinue
+    if ($windowProcess) {
+        $null = $windowProcess.CloseMainWindow()
     }
+    if (-not $application.WaitForExit(5000)) {
+        $application.Kill($true)
+        $application.WaitForExit()
+    }
+    $application.Dispose()
 }
