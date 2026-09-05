@@ -21,7 +21,7 @@ for attempt in {1..150}; do
         exit 1
     fi
 
-    if xwininfo -root -tree | grep -F 'pu6e Reloaded' >/dev/null; then
+    if LC_ALL=C.UTF-8 xwininfo -root -tree | grep -F 'pu6e Reloaded' >/dev/null; then
         printf 'Verified packaged launcher window: %s\n' "$application_path"
         exit 0
     fi
