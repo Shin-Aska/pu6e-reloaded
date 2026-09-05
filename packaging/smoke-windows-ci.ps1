@@ -4,6 +4,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+Start-Transcript -Path (Join-Path $RuntimeDirectory "smoke.log") | Out-Null
 $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
 $principal = [System.Security.Principal.WindowsPrincipal]::new($identity)
 if ($principal.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)) {
@@ -22,3 +23,4 @@ foreach ($executable in @($portable, $standalone)) {
     & "$PSScriptRoot/smoke-windows-vulkan.ps1" -Executable $executable
     & "$PSScriptRoot/smoke-windows.ps1" -Executable $executable
 }
+Stop-Transcript | Out-Null

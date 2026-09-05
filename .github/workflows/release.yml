@@ -171,7 +171,9 @@ jobs:
           & $psExec -accepteula -nobanner -l -i $session -w $PWD.Path `
             (Get-Command pwsh).Source -NoProfile -File "$PWD/packaging/smoke-windows-ci.ps1" `
             -RuntimeDirectory $runtime
-          if ($LASTEXITCODE -ne 0) { throw "Windows package smoke checks failed (exit $LASTEXITCODE)." }
+          $smokeExitCode = $LASTEXITCODE
+          Get-Content -LiteralPath (Join-Path $runtime "smoke.log")
+          if ($smokeExitCode -ne 0) { throw "Windows package smoke checks failed (exit $smokeExitCode)." }
 
       - name: Validate the portable Windows ZIP
         shell: pwsh
