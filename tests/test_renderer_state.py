@@ -8,15 +8,15 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from pu6e_qt.rendering.camera import CameraState, InvalidZoomError
-from pu6e_qt.rendering.options import RenderOptions
+from ui.rendering.camera import CameraState, InvalidZoomError
+from ui.rendering.options import RenderOptions
 
 if TYPE_CHECKING:
     from collections.abc import Generator, Sequence
 
     import numpy as np
     from numpy.typing import NDArray
-from pu6e_core.models.assets import (
+from game.models.assets import (
     AnimationData,
     HybridMask,
     ObjectCatalog,
@@ -24,12 +24,12 @@ from pu6e_core.models.assets import (
     TileSet,
     WorldAssets,
 )
-from pu6e_core.models.game import GameType
-from pu6e_core.models.world import WorldMap, WorldState
-from pu6e_core.services.session import WorldSession
-from pu6e_qt.rendering import gl_api
-from pu6e_qt.rendering.gl_api import GL, OpenGLBindingError
-from pu6e_qt.rendering.renderer import MapRenderer, visible_blocks
+from game.models.game import GameType
+from game.models.world import WorldMap, WorldState
+from game.services.session import WorldSession
+from ui.rendering import gl_api
+from ui.rendering.gl_api import GL, OpenGLBindingError
+from ui.rendering.renderer import MapRenderer, visible_blocks
 
 
 def test_camera_preserves_center_when_resized_and_zoomed() -> None:

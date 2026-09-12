@@ -13,7 +13,7 @@ license-files = [
   "LICENSE",
   "NOTICE.md",
   "THIRD_PARTY_NOTICES.md",
-  "docs/history/NOTICE-0.6.0.txt",
+  "src/docs/history/NOTICE-0.6.0.txt",
 ]
 authors = [{name = "Jim Ursetto"}]
 maintainers = [{name = "Richard Louie Orilla"}]
@@ -36,9 +36,11 @@ packaging = ["pyinstaller>=6.22"]
 
 [tool.setuptools]
 py-modules = ["pu6e"]
+package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
-include = ["pu6e_core", "pu6e_core.*", "pu6e_qt", "pu6e_qt.*"]
+where = ["src"]
+include = ["game", "game.*", "ui", "ui.*"]
 namespaces = false
 
 [tool.pytest.ini_options]
@@ -47,13 +49,13 @@ testpaths = ["tests"]
 [tool.basedpyright]
 typeCheckingMode = "all"
 pythonVersion = "3.14"
-include = ["pu6e_core"]
+include = ["src/game"]
 exclude = ["**/__pycache__", ".venv", "build", "dist"]
 
 [tool.ruff]
 target-version = "py314"
 line-length = 100
-include = ["pu6e_core/**/*.py", "pyproject.toml"]
+include = ["src/game/**/*.py", "pyproject.toml"]
 
 [tool.ruff.lint]
 select = ["ALL"]
@@ -68,13 +70,13 @@ ignore = [
 "tests/**/*.py" = ["S101", "ARG", "PLR2004", "SLF001", "D", "INP001"]
 # Packed formats use their specified bit widths and offsets directly. FormatError
 # accepts a resource identifier as its first field, not an exception message.
-"pu6e_core/formats/*.py" = ["PLR2004", "EM101"]
+"src/game/format/*.py" = ["PLR2004", "EM101"]
 # Keep the dictionary decoder's state transitions together for binary auditing.
-"pu6e_core/formats/lzw.py" = ["C901", "PLR0912", "PLR0915"]
+"src/game/format/lzw.py" = ["C901", "PLR0912", "PLR0915"]
 # Domain coordinate and status operations use the same fixed wire bit widths.
-"pu6e_core/models/coordinates.py" = ["PLR2004"]
-"pu6e_core/models/objects.py" = ["PLR2004", "EM101", "TRY003"]
-"pu6e_core/services/editor.py" = ["PLR2004", "EM101", "TRY003"]
+"src/game/models/coordinates.py" = ["PLR2004"]
+"src/game/models/objects.py" = ["PLR2004", "EM101", "TRY003"]
+"src/game/services/editor.py" = ["PLR2004", "EM101", "TRY003"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

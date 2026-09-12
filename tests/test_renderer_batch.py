@@ -8,11 +8,11 @@ import pytest
 if TYPE_CHECKING:
     from numpy.typing import NDArray
 
-from pu6e_core.models.assets import ObjectCatalog, Palette
-from pu6e_core.models.coordinates import world_to_chunk
-from pu6e_core.models.objects import ObjectPoint, WorldObject
-from pu6e_qt.rendering import batch, pixels
-from pu6e_qt.rendering.gl_api import GL
+from game.models.assets import ObjectCatalog, Palette
+from game.models.coordinates import world_to_chunk
+from game.models.objects import ObjectPoint, WorldObject
+from ui.rendering import batch, pixels
+from ui.rendering.gl_api import GL
 
 
 @pytest.mark.parametrize(("world_x", "world_y", "world_z"), [(1023, 1023, 0), (255, 255, 1)])

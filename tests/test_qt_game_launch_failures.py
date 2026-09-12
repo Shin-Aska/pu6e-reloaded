@@ -8,11 +8,12 @@ import pytest
 from PySide6.QtWidgets import QApplication, QMessageBox, QWidget
 
 from game_fixtures import write_game_fixture
-from pu6e_qt.application import RuntimeConfiguration
-from pu6e_qt.controller import EditorController
-from pu6e_qt.game_profiles import GameProfile
-from pu6e_qt.launcher import LauncherWindow
-from pu6e_qt.renderer_settings import RendererMode, RendererRuntime
+from ui.app.bootstrap import RuntimeConfiguration
+from ui.app.controller import EditorController
+from ui.profile.models import GameProfile
+from ui.launcher.window import LauncherWindow
+from ui.runtime.renderer import RendererMode, RendererRuntime
+from ui.settings.store import SettingsStore
 
 
 @pytest.fixture(scope="session")
@@ -32,13 +33,21 @@ def critical_dialogs(monkeypatch: pytest.MonkeyPatch) -> list[tuple[QWidget | No
 
 
 def _configured_launcher(tmp_path: Path, game: str) -> tuple[LauncherWindow, Path]:
-    from pu6e_qt.game_profiles import GameProfileStore
+    from ui.app.bootstrap import initialize_editor
+    from ui.profile.store import GameProfileStore
 
     game_directory = tmp_path / game
     write_game_fixture(game_directory, game, game)
-    store = GameProfileStore(tmp_path / "pu6e.conf")
+    settings = SettingsStore(tmp_path / "pu6e.conf")
+    store = GameProfileStore(settings)
     store.set_directory(game, game_directory)
-    launcher = LauncherWindow(store, RendererRuntime(RendererMode.OPENGL))
+    launcher = LauncherWindow(
+        store,
+        settings,
+        RendererRuntime(RendererMode.OPENGL),
+        launch_editor=initialize_editor,
+        restart_application=lambda: True,
+    )
     launcher.show()
     return launcher, game_directory
 
@@ -120,9 +129,9 @@ def test_launcher_reports_configuration_error_without_hiding(
     critical_dialogs: list[tuple[QWidget | None, str, str]],
 ) -> None:
     # Given: a configured Savage Empire launcher and a malformed runtime config.
-    from pu6e_qt.application import MalformedConfigurationError
-    import pu6e_qt.application as application_module
-    import pu6e_qt.launcher as launcher_module
+    from ui.app.bootstrap import MalformedConfigurationError
+    import ui.app.bootstrap as application_module
+    import ui.launcher.window as launcher_module
 
     launcher, _ = _configured_launcher(tmp_path, "se")
     error = MalformedConfigurationError(launcher.store.config_path, "invalid width")
@@ -233,7 +242,7 @@ def test_launcher_can_retry_after_restoring_game_files(
     critical_dialogs: list[tuple[QWidget | None, str, str]],
 ) -> None:
     # Given: an initially complete Ultima VI fixture with a removed palette.
-    import pu6e_qt.launcher as launcher_module
+    import ui.launcher.window as launcher_module
 
     class StubEditor(QWidget):
         def __init__(

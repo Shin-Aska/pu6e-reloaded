@@ -5,13 +5,13 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from pu6e_core.models.game import GameType
-from pu6e_core.services.loader import WorldLoader
-from pu6e_core.services.saver import WorldSaver
+from game.models.game import GameType
+from game.services.loader import WorldLoader
+from game.services.saver import WorldSaver
 from tests.game_fixtures import write_game_fixture
 
 if TYPE_CHECKING:
-    from pu6e_core.services.session import WorldSession
+    from game.services.session import WorldSession
 
 
 @pytest.fixture

@@ -12,10 +12,10 @@ Jim Ursetto created the original world editor, game-format handling, map and
 object editing capabilities, and support for Ultima VI, Martian Dreams, and
 The Savage Empire. His original copyright and licensing notice is preserved
 without modification in
-[`docs/history/NOTICE-0.6.0.txt`](docs/history/NOTICE-0.6.0.txt).
+[`src/docs/history/NOTICE-0.6.0.txt`](src/docs/history/NOTICE-0.6.0.txt).
 
 The original README and installation instructions are also preserved without
-modification in [`docs/history/`](docs/history/).
+modification in [`src/docs/history/`](src/docs/history/).
 
 ## Modified work
 

@@ -9,9 +9,9 @@ from PySide6.QtGui import QPaintEvent
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QWidget
 
-from pu6e_qt.controller import EditorController
-from pu6e_qt.main_window import MainWindow
-from pu6e_qt.renderer_settings import RendererMode, RendererRuntime
+from ui.app.controller import EditorController
+from ui.app.window import MainWindow
+from ui.runtime.renderer import RendererMode, RendererRuntime
 
 
 @pytest.fixture(scope="session")
@@ -25,7 +25,7 @@ def workbench(
     monkeypatch: pytest.MonkeyPatch,
     workbench_app: QApplication,
 ):
-    import pu6e_qt.main_window as workbench_module
+    import ui.app.window as workbench_module
 
     class StubCanvas(QWidget):
         fatal_error = Signal(str)

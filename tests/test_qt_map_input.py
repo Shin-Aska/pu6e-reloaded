@@ -6,7 +6,7 @@ import pytest
 from game_fixtures import write_game_fixture
 from PySide6.QtCore import Qt
 
-from pu6e_qt.controller import EditorController
+from ui.app.controller import EditorController
 
 
 @pytest.fixture
@@ -29,7 +29,7 @@ def map_controller(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> EditorCon
     ),
 )
 def test_arrow_navigation_moves_one_tile(key: Qt.Key, expected: tuple[int, int]) -> None:
-    from pu6e_qt.map_navigation import navigation_action
+    from ui.app.map.navigation import navigation_action
 
     action = navigation_action(key.value, keypad=False)
 
@@ -54,7 +54,7 @@ def test_keypad_navigation_moves_entire_chunks(
     key: Qt.Key,
     expected: tuple[int, int],
 ) -> None:
-    from pu6e_qt.map_navigation import navigation_action
+    from ui.app.map.navigation import navigation_action
 
     action = navigation_action(key.value, keypad=True)
 
@@ -70,7 +70,7 @@ def test_keypad_level_navigation_selects_adjacent_level(
     key: Qt.Key,
     expected: int,
 ) -> None:
-    from pu6e_qt.map_navigation import navigation_action
+    from ui.app.map.navigation import navigation_action
 
     action = navigation_action(key.value, keypad=True)
 
@@ -83,7 +83,7 @@ def test_keypad_level_navigation_selects_adjacent_level(
     ((Qt.Key.Key_Plus, 2.0), (Qt.Key.Key_Equal, 2.0), (Qt.Key.Key_Minus, 0.5)),
 )
 def test_zoom_navigation_uses_legacy_scale_factors(key: Qt.Key, expected: float) -> None:
-    from pu6e_qt.map_navigation import navigation_action
+    from ui.app.map.navigation import navigation_action
 
     action = navigation_action(key.value, keypad=False)
 
@@ -92,7 +92,7 @@ def test_zoom_navigation_uses_legacy_scale_factors(key: Qt.Key, expected: float)
 
 
 def test_regular_number_keys_do_not_trigger_chunk_navigation() -> None:
-    from pu6e_qt.map_navigation import navigation_action
+    from ui.app.map.navigation import navigation_action
 
     assert navigation_action(Qt.Key.Key_7.value, keypad=False) is None
 
@@ -100,7 +100,7 @@ def test_regular_number_keys_do_not_trigger_chunk_navigation() -> None:
 def test_opengl_format_requests_desktop_legacy_compatibility() -> None:
     from PySide6.QtGui import QSurfaceFormat
 
-    from pu6e_qt.canvas import configure_opengl_format
+    from ui.runtime.surface import configure_opengl_format
 
     surface_format = configure_opengl_format()
 
@@ -113,7 +113,7 @@ def test_object_drag_preserves_identity_and_original_anchor_offset(
     map_controller: EditorController,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from pu6e_qt.map_input import MapInteraction
+    from ui.app.map.interaction import MapInteraction
 
     current = map_controller.session.editor.new_object()
     map_controller.session.editor.add_object_at(current, 10, 10, 0)
@@ -131,7 +131,7 @@ def test_object_drag_preserves_identity_and_original_anchor_offset(
 def test_control_drag_creates_distinct_object_clone(
     map_controller: EditorController,
 ) -> None:
-    from pu6e_qt.map_input import MapInteraction
+    from ui.app.map.interaction import MapInteraction
 
     original = map_controller.session.editor.new_object()
     map_controller.session.editor.add_object_at(original, 4, 4, 0)
@@ -147,7 +147,7 @@ def test_control_drag_creates_distinct_object_clone(
 
 
 def test_shift_drag_assigns_source_map_chunk(map_controller: EditorController) -> None:
-    from pu6e_qt.map_input import MapInteraction
+    from ui.app.map.interaction import MapInteraction
 
     map_controller.session.state.terrain.chunks.append(bytearray(map_controller.session.state.terrain.chunks[0]))
     map_controller.session.editor.set_chunk(1, 0, 0, 0)
@@ -162,7 +162,7 @@ def test_shift_drag_assigns_source_map_chunk(map_controller: EditorController) -
 def test_disabled_terrain_drag_does_not_change_destination(
     map_controller: EditorController,
 ) -> None:
-    from pu6e_qt.map_input import MapInteraction
+    from ui.app.map.interaction import MapInteraction
 
     map_controller.session.editor.set_map_tile(7, 1, 1, 0)
     interaction = MapInteraction(map_controller)
@@ -176,7 +176,7 @@ def test_disabled_terrain_drag_does_not_change_destination(
 def test_enabled_terrain_drag_copies_source_background_tile(
     map_controller: EditorController,
 ) -> None:
-    from pu6e_qt.map_input import MapInteraction
+    from ui.app.map.interaction import MapInteraction
 
     map_controller.session.editor.set_map_tile(7, 1, 1, 0)
     map_controller.terrain_mode = True
@@ -191,7 +191,7 @@ def test_enabled_terrain_drag_copies_source_background_tile(
 def test_right_drag_paints_each_entered_background_tile(
     map_controller: EditorController,
 ) -> None:
-    from pu6e_qt.map_input import MapInteraction
+    from ui.app.map.interaction import MapInteraction
 
     map_controller.selected_tile = 13
     interaction = MapInteraction(map_controller)
@@ -205,7 +205,7 @@ def test_right_drag_paints_each_entered_background_tile(
 def test_right_paint_rejects_object_only_tile_ids(
     map_controller: EditorController,
 ) -> None:
-    from pu6e_qt.map_input import MapInteraction
+    from ui.app.map.interaction import MapInteraction
 
     map_controller.selected_tile = 256
     interaction = MapInteraction(map_controller)
@@ -219,7 +219,7 @@ def test_right_paint_rejects_object_only_tile_ids(
 def test_clicking_empty_location_does_not_create_world_point(
     map_controller: EditorController,
 ) -> None:
-    from pu6e_qt.map_input import MapInteraction
+    from ui.app.map.interaction import MapInteraction
 
     interaction = MapInteraction(map_controller)
     interaction.press_left(1, 1, 0)

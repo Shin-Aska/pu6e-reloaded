@@ -6,15 +6,16 @@ from pathlib import Path
 import pytest
 from PySide6.QtWidgets import QApplication
 
-from pu6e_qt.game_profiles import GameProfileStore
-from pu6e_qt.renderer_settings import (
+from ui.profile.store import GameProfileStore
+from ui.runtime.renderer import (
     RendererMode,
     RendererRuntime,
     VulkanDeviceSelector,
     configure_renderer,
     resolve_renderer,
 )
-from pu6e_qt.vulkan_devices import VulkanDevice, VulkanDeviceKind
+from ui.runtime.vulkan import VulkanDevice, VulkanDeviceKind
+from ui.settings.store import SettingsStore
 
 
 @pytest.fixture(scope="session")
@@ -24,7 +25,7 @@ def launcher_app() -> QApplication:
 
 def test_renderer_defaults_to_vulkan_when_no_preference_exists(tmp_path: Path) -> None:
     # Given: a launcher configuration with no renderer preference.
-    store = GameProfileStore(tmp_path / "config.ini")
+    store = SettingsStore(tmp_path / "config.ini")
 
     # When: the preference is read.
     renderer = store.renderer
@@ -39,7 +40,7 @@ def test_renderer_preference_persists_when_saved(
 ) -> None:
     # Given: a launcher configuration store.
     config_path = tmp_path / "config.ini"
-    store = GameProfileStore(config_path)
+    store = SettingsStore(config_path)
 
     # When: a renderer is selected.
     store.set_renderer(renderer)
@@ -48,7 +49,7 @@ def test_renderer_preference_persists_when_saved(
     saved = ConfigParser()
     saved.read(config_path)
     assert saved.get("launcher", "renderer") == renderer.value
-    assert GameProfileStore(config_path).renderer is renderer
+    assert SettingsStore(config_path).renderer is renderer
 
 
 def test_renderer_preference_stays_unchanged_when_save_fails(
@@ -56,7 +57,7 @@ def test_renderer_preference_stays_unchanged_when_save_fails(
 ) -> None:
     # Given: a persisted renderer and a configuration file that cannot be updated.
     config_path = tmp_path / "config.ini"
-    store = GameProfileStore(config_path)
+    store = SettingsStore(config_path)
     store.set_renderer(RendererMode.SOFTWARE)
     monkeypatch.setattr(store, "_write", lambda: (_ for _ in ()).throw(PermissionError()))
 
@@ -66,13 +67,13 @@ def test_renderer_preference_stays_unchanged_when_save_fails(
 
     # Then: the current store and persisted preference remain on the saved renderer.
     assert store.renderer is RendererMode.SOFTWARE
-    assert GameProfileStore(config_path).renderer is RendererMode.SOFTWARE
+    assert SettingsStore(config_path).renderer is RendererMode.SOFTWARE
 
 
 def test_vulkan_gpu_preference_persists_with_renderer(tmp_path: Path) -> None:
     # Given: a launcher configuration store with no graphics preferences.
     config_path = tmp_path / "config.ini"
-    store = GameProfileStore(config_path)
+    store = SettingsStore(config_path)
 
     # When: Vulkan and a particular adapter are selected together.
     store.set_renderer_preferences(
@@ -83,7 +84,7 @@ def test_vulkan_gpu_preference_persists_with_renderer(tmp_path: Path) -> None:
     # Then: both preferences are persisted and restored together.
     saved = ConfigParser()
     saved.read(config_path)
-    restored = GameProfileStore(config_path)
+    restored = SettingsStore(config_path)
     assert saved.get("launcher", "renderer") == RendererMode.VULKAN.value
     assert saved.get("launcher", "vulkan_gpu") == "8086:46a6"
     assert restored.renderer is RendererMode.VULKAN
@@ -167,7 +168,7 @@ def test_vulkan_uses_cpu_backend_when_hardware_probe_fails(
     # Given: unavailable hardware Vulkan and an available software Vulkan device.
     results = iter((False, True))
     monkeypatch.setattr(
-        "pu6e_qt.renderer_settings._probe_vulkan_environment",
+        "ui.runtime.renderer._probe_vulkan_environment",
         lambda _software, _gpu: next(results),
     )
 
@@ -186,7 +187,7 @@ def test_vulkan_falls_back_to_opengl_when_no_vulkan_backend_starts(
 ) -> None:
     # Given: neither hardware nor software Vulkan can create a context.
     monkeypatch.setattr(
-        "pu6e_qt.renderer_settings._probe_vulkan_environment",
+        "ui.runtime.renderer._probe_vulkan_environment",
         lambda _software, _gpu: False,
     )
 
@@ -225,11 +226,11 @@ def test_launcher_applies_saved_renderer_before_creating_qapplication(
 ) -> None:
     # Given: a saved software renderer preference and observable startup seams.
     from PySide6 import QtWidgets
-    import pu6e_qt.application as application_module
-    import pu6e_qt.canvas as canvas_module
-    import pu6e_qt.launcher as launcher_module
-    import pu6e_qt.renderer_settings as renderer_settings_module
-    import pu6e_qt.theme as theme_module
+    import ui.app.bootstrap as application_module
+    import ui.runtime.surface as surface_module
+    import ui.launcher.window as launcher_module
+    import ui.runtime.renderer as renderer_settings_module
+    import ui.shared.theme as theme_module
 
     class StubApplication:
         def exec(self) -> int:
@@ -239,7 +240,11 @@ def test_launcher_applies_saved_renderer_before_creating_qapplication(
         def __init__(
             self,
             _store: GameProfileStore,
+            _settings: SettingsStore,
             _runtime: RendererRuntime,
+            *,
+            launch_editor,
+            restart_application,
         ) -> None:
             pass
 
@@ -260,7 +265,7 @@ def test_launcher_applies_saved_renderer_before_creating_qapplication(
         "QApplication",
         lambda _arguments: events.append("application") or StubApplication(),
     )
-    monkeypatch.setattr(canvas_module, "configure_opengl_format", lambda: None)
+    monkeypatch.setattr(surface_module, "configure_opengl_format", lambda: None)
     monkeypatch.setattr(theme_module, "apply_theme", lambda _application: None)
     monkeypatch.setattr(launcher_module, "LauncherWindow", StubLauncher)
 
@@ -275,9 +280,9 @@ def test_launcher_settings_lists_and_saves_every_renderer(
     tmp_path: Path, launcher_app: QApplication
 ) -> None:
     # Given: the global launcher settings dialog.
-    from pu6e_qt.launcher_settings import LauncherSettingsDialog
+    from ui.settings.dialog import LauncherSettingsDialog
 
-    store = GameProfileStore(tmp_path / "config.ini")
+    store = SettingsStore(tmp_path / "config.ini")
     dialog = LauncherSettingsDialog(store)
 
     # When: the renderer choices are inspected and Vulkan is saved.
@@ -295,9 +300,9 @@ def test_launcher_settings_reveals_gpu_picker_only_for_vulkan(
     tmp_path: Path, launcher_app: QApplication
 ) -> None:
     # Given: launcher settings begin on a saved OpenGL renderer.
-    from pu6e_qt.launcher_settings import LauncherSettingsDialog
+    from ui.settings.dialog import LauncherSettingsDialog
 
-    store = GameProfileStore(tmp_path / "config.ini")
+    store = SettingsStore(tmp_path / "config.ini")
     store.set_renderer(RendererMode.OPENGL)
     dialog = LauncherSettingsDialog(
         store,
@@ -316,7 +321,7 @@ def test_launcher_settings_lists_and_saves_detected_vulkan_gpus(
     tmp_path: Path, launcher_app: QApplication
 ) -> None:
     # Given: Vulkan exposes an integrated and a discrete GPU.
-    from pu6e_qt.launcher_settings import LauncherSettingsDialog
+    from ui.settings.dialog import LauncherSettingsDialog
 
     devices = (
         VulkanDevice(
@@ -330,7 +335,7 @@ def test_launcher_settings_lists_and_saves_detected_vulkan_gpus(
             VulkanDeviceKind.DISCRETE,
         ),
     )
-    store = GameProfileStore(tmp_path / "config.ini")
+    store = SettingsStore(tmp_path / "config.ini")
     dialog = LauncherSettingsDialog(store, vulkan_devices=devices)
 
     # When: the discrete adapter is selected and saved with Vulkan.
@@ -363,11 +368,11 @@ def test_missing_saved_vulkan_gpu_falls_back_to_automatic(
     )
     calls: list[tuple[bool, VulkanDeviceSelector | None]] = []
     monkeypatch.setattr(
-        "pu6e_qt.renderer_settings.list_vulkan_devices",
+        "ui.runtime.renderer.list_vulkan_devices",
         lambda: (available,),
     )
     monkeypatch.setattr(
-        "pu6e_qt.renderer_settings._probe_vulkan_environment",
+        "ui.runtime.renderer._probe_vulkan_environment",
         lambda software, gpu: calls.append((software, gpu)) or True,
     )
 
@@ -397,11 +402,11 @@ def test_selected_cpu_vulkan_device_uses_software_probe(
     )
     calls: list[tuple[bool, VulkanDeviceSelector | None]] = []
     monkeypatch.setattr(
-        "pu6e_qt.renderer_settings.list_vulkan_devices",
+        "ui.runtime.renderer.list_vulkan_devices",
         lambda: (cpu_device,),
     )
     monkeypatch.setattr(
-        "pu6e_qt.renderer_settings._probe_vulkan_environment",
+        "ui.runtime.renderer._probe_vulkan_environment",
         lambda software, gpu: calls.append((software, gpu)) or True,
     )
 
@@ -420,11 +425,11 @@ def test_saved_vulkan_gpu_falls_back_when_enumeration_is_empty(
     # Given: no Vulkan devices remain after a GPU selector was saved.
     calls: list[tuple[bool, VulkanDeviceSelector | None]] = []
     monkeypatch.setattr(
-        "pu6e_qt.renderer_settings.list_vulkan_devices",
+        "ui.runtime.renderer.list_vulkan_devices",
         lambda: (),
     )
     monkeypatch.setattr(
-        "pu6e_qt.renderer_settings._probe_vulkan_environment",
+        "ui.runtime.renderer._probe_vulkan_environment",
         lambda software, gpu: calls.append((software, gpu)) or True,
     )
 
@@ -445,11 +450,15 @@ def test_atlas_launcher_exposes_global_renderer_settings(
     tmp_path: Path, launcher_app: QApplication
 ) -> None:
     # Given: the Atlas launcher.
-    from pu6e_qt.launcher import LauncherWindow
+    from ui.launcher.window import LauncherWindow
 
+    settings = SettingsStore(tmp_path / "config.ini")
     launcher = LauncherWindow(
-        GameProfileStore(tmp_path / "config.ini"),
+        GameProfileStore(settings),
+        settings,
         RendererRuntime(RendererMode.OPENGL),
+        launch_editor=lambda _path: pytest.fail("unexpected editor launch"),
+        restart_application=lambda: True,
     )
 
     # When: its global settings affordance is inspected.
@@ -466,12 +475,19 @@ def test_launcher_title_identifies_the_active_renderer(
     tmp_path: Path, launcher_app: QApplication
 ) -> None:
     # Given: the launcher is running on the CPU Vulkan fallback.
-    from pu6e_qt.launcher import LauncherWindow
+    from ui.launcher.window import LauncherWindow
 
     runtime = RendererRuntime(RendererMode.VULKAN, software_vulkan=True)
 
     # When: the native launcher window is created.
-    launcher = LauncherWindow(GameProfileStore(tmp_path / "config.ini"), runtime)
+    settings = SettingsStore(tmp_path / "config.ini")
+    launcher = LauncherWindow(
+        GameProfileStore(settings),
+        settings,
+        runtime,
+        launch_editor=lambda _path: pytest.fail("unexpected editor launch"),
+        restart_application=lambda: True,
+    )
 
     # Then: its title identifies the resolved backend without opening settings.
     assert launcher.windowTitle().endswith("[Renderer: Vulkan (CPU)]")

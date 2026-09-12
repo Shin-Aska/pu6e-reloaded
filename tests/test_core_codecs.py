@@ -3,19 +3,19 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from pu6e_core.formats.errors import FormatError
-from pu6e_core.formats.npcs import decode_objlist, encode_objlist
-from pu6e_core.formats.objects import decode_object_block, encode_object_block
-from pu6e_core.formats.terrain import decode_chunks, decode_map, encode_chunks, encode_map
-from pu6e_core.models.assets import ObjectCatalog
-from pu6e_core.models.coordinates import pack_coords, unpack_coords
-from pu6e_core.models.objects import (
+from game.format.errors import FormatError
+from game.format.npcs import decode_objlist, encode_objlist
+from game.format.objects import decode_object_block, encode_object_block
+from game.format.terrain import decode_chunks, decode_map, encode_chunks, encode_map
+from game.models.assets import ObjectCatalog
+from game.models.coordinates import pack_coords, unpack_coords
+from game.models.objects import (
     ContainmentError,
     ObjectPoint,
     PointAssignmentError,
     WorldObject,
 )
-from pu6e_core.services.editor import EditValueError
+from game.services.editor import EditValueError
 
 if TYPE_CHECKING:
     from collections.abc import Generator

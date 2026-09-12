@@ -2,11 +2,11 @@ from pathlib import Path
 
 import pytest
 
-from pu6e_core.models.assets import AnimationData, ObjectCatalog, Palette, TileSet, WorldAssets
-from pu6e_core.models.game import GameType
-from pu6e_core.models.objects import ContainmentError, Npc, WorldObject
-from pu6e_core.models.world import WorldMap, WorldState
-from pu6e_core.services.session import WorldSession
+from game.models.assets import AnimationData, ObjectCatalog, Palette, TileSet, WorldAssets
+from game.models.game import GameType
+from game.models.objects import ContainmentError, Npc, WorldObject
+from game.models.world import WorldMap, WorldState
+from game.services.session import WorldSession
 
 
 def make_session(flags: tuple[int, ...] = (0,) * 7168) -> WorldSession:

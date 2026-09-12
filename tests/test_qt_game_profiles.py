@@ -5,10 +5,12 @@ from pathlib import Path
 
 import pytest
 
-from pu6e_qt import game_profiles
-from pu6e_qt.game_profiles import GameProfile, GameProfileStore
+from ui.profile import validation as game_profiles
+from ui.profile.models import GameProfile
+from ui.profile.store import GameProfileStore
+from ui.settings.store import SettingsStore
 from game_fixtures import write_game_fixture
-from pu6e_core.formats.resources import palette_filename
+from game.format.resources import palette_filename
 
 GAMES = ("fp", "md", "se")
 
@@ -16,12 +18,12 @@ GAMES = ("fp", "md", "se")
 def _installation(tmp_path: Path, game: str) -> tuple[GameProfileStore, Path]:
     directory = tmp_path / game
     write_game_fixture(directory, game, game)
-    return GameProfileStore(tmp_path / "pu6e.conf"), directory
+    return GameProfileStore(SettingsStore(tmp_path / "pu6e.conf")), directory
 
 
 @pytest.mark.parametrize("game", GAMES)
 def test_profile_reports_unconfigured_for_each_game(tmp_path: Path, game: str) -> None:
-    store = GameProfileStore(tmp_path / "pu6e.conf")
+    store = GameProfileStore(SettingsStore(tmp_path / "pu6e.conf"))
 
     profile = store.profile(game)
 
@@ -33,7 +35,7 @@ def test_profile_reports_unconfigured_for_each_game(tmp_path: Path, game: str) -
 
 @pytest.mark.parametrize("game", GAMES)
 def test_profile_distinguishes_missing_directory_for_each_game(tmp_path: Path, game: str) -> None:
-    store = GameProfileStore(tmp_path / "pu6e.conf")
+    store = GameProfileStore(SettingsStore(tmp_path / "pu6e.conf"))
     directory = tmp_path / "absent"
 
     profile = store.inspect(game, directory)
@@ -46,7 +48,7 @@ def test_profile_distinguishes_missing_directory_for_each_game(tmp_path: Path, g
 
 @pytest.mark.parametrize("game", GAMES)
 def test_profile_distinguishes_regular_file_for_each_game(tmp_path: Path, game: str) -> None:
-    store = GameProfileStore(tmp_path / "pu6e.conf")
+    store = GameProfileStore(SettingsStore(tmp_path / "pu6e.conf"))
     regular_file = tmp_path / "regular-file"
     regular_file.write_bytes(b"not a directory")
 

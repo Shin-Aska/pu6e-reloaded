@@ -6,10 +6,11 @@ from pathlib import Path
 import pytest
 from PySide6.QtWidgets import QApplication
 
-from pu6e_qt import game_profiles
-from pu6e_qt.game_profiles import GameProfileStore
+from ui.profile import validation as game_profiles
+from ui.profile.store import GameProfileStore
+from ui.settings.store import SettingsStore
 from game_fixtures import write_game_fixture
-from pu6e_core.formats.resources import palette_filename
+from game.format.resources import palette_filename
 
 GAMES = ("fp", "md", "se")
 
@@ -20,9 +21,9 @@ def launcher_app() -> QApplication:
 
 
 def _dialog(tmp_path: Path, game: str):
-    from pu6e_qt.launcher_dialog import GameConfigurationDialog
+    from ui.profile.dialog import GameConfigurationDialog
 
-    store = GameProfileStore(tmp_path / "pu6e.conf")
+    store = GameProfileStore(SettingsStore(tmp_path / "pu6e.conf"))
     return store, GameConfigurationDialog(store, game)
 
 

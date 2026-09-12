@@ -11,7 +11,7 @@ from game_fixtures import write_game_fixture
 def test_application_initializes_every_supported_game_fixture(
     tmp_path: Path, game: str
 ) -> None:
-    from pu6e_qt.application import initialize_editor
+    from ui.app.bootstrap import initialize_editor
 
     game_dir = tmp_path / game
     write_game_fixture(game_dir, game, game)
@@ -38,7 +38,7 @@ def test_application_initializes_every_supported_game_fixture(
 
 
 def test_application_rejects_missing_game_directory(tmp_path: Path) -> None:
-    from pu6e_qt.application import GameDirectoryError, initialize_editor
+    from ui.app.bootstrap import GameDirectoryError, initialize_editor
 
     config_path = tmp_path / "pu6e.conf"
     config_path.write_text(
@@ -55,14 +55,14 @@ def test_application_rejects_missing_game_directory(tmp_path: Path) -> None:
 
 
 def test_application_rejects_missing_configuration_file(tmp_path: Path) -> None:
-    from pu6e_qt.application import ConfigurationFileError, initialize_editor
+    from ui.app.bootstrap import ConfigurationFileError, initialize_editor
 
     with pytest.raises(ConfigurationFileError):
         initialize_editor(tmp_path / "missing.conf")
 
 
 def test_application_rejects_malformed_configuration_syntax(tmp_path: Path) -> None:
-    from pu6e_qt.application import MalformedConfigurationError, read_configuration
+    from ui.app.bootstrap import MalformedConfigurationError, read_configuration
 
     config_path = tmp_path / "pu6e.conf"
     config_path.write_text("[pu6e\nwidth = 800\n")
@@ -76,7 +76,7 @@ def test_application_rejects_malformed_configuration_syntax(tmp_path: Path) -> N
 
 
 def test_application_rejects_missing_required_configuration_option(tmp_path: Path) -> None:
-    from pu6e_qt.application import MalformedConfigurationError, read_configuration
+    from ui.app.bootstrap import MalformedConfigurationError, read_configuration
 
     config_path = tmp_path / "pu6e.conf"
     config_path.write_text(
@@ -101,7 +101,7 @@ def test_application_rejects_missing_required_configuration_option(tmp_path: Pat
 def test_application_rejects_invalid_numeric_configuration(
     tmp_path: Path, option: str, value: str
 ) -> None:
-    from pu6e_qt.application import MalformedConfigurationError, read_configuration
+    from ui.app.bootstrap import MalformedConfigurationError, read_configuration
 
     config_path = tmp_path / "pu6e.conf"
     settings = {"width": "800", "height": "600", "zoom": "1"}
@@ -123,7 +123,7 @@ def test_application_rejects_invalid_numeric_configuration(
 
 
 def test_application_rejects_unsupported_game_type(tmp_path: Path) -> None:
-    from pu6e_qt.application import GameTypeError, read_configuration
+    from ui.app.bootstrap import GameTypeError, read_configuration
 
     config_path = tmp_path / "pu6e.conf"
     config_path.write_text(
@@ -148,7 +148,7 @@ def test_application_rejects_unsupported_game_type(tmp_path: Path) -> None:
 def test_application_rejects_nonpositive_display_configuration(
     tmp_path: Path, width: str, height: str, zoom: str
 ) -> None:
-    from pu6e_qt.application import DisplayConfigurationError, read_configuration
+    from ui.app.bootstrap import DisplayConfigurationError, read_configuration
 
     config_path = tmp_path / "pu6e.conf"
     config_path.write_text(
@@ -168,9 +168,9 @@ def test_launcher_startup_surfaces_malformed_configuration(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     from PySide6 import QtWidgets
-    import pu6e_qt.application as application_module
-    import pu6e_qt.canvas as canvas_module
-    import pu6e_qt.theme as theme_module
+    import ui.app.bootstrap as application_module
+    import ui.runtime.surface as surface_module
+    import ui.shared.theme as theme_module
 
     class StubApplication:
         def __init__(self, arguments: list[str]) -> None:
@@ -191,7 +191,7 @@ def test_launcher_startup_surfaces_malformed_configuration(
         "QApplication",
         lambda arguments: applications.append(StubApplication(arguments)) or applications[-1],
     )
-    monkeypatch.setattr(canvas_module, "configure_opengl_format", lambda: None)
+    monkeypatch.setattr(surface_module, "configure_opengl_format", lambda: None)
     monkeypatch.setattr(theme_module, "apply_theme", lambda application: None)
     monkeypatch.setattr(
         QtWidgets.QMessageBox,
@@ -214,11 +214,12 @@ def test_launcher_startup_allows_missing_configuration(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     from PySide6 import QtWidgets
-    from pu6e_qt.game_profiles import GameProfileStore
-    import pu6e_qt.application as application_module
-    import pu6e_qt.canvas as canvas_module
-    import pu6e_qt.launcher as launcher_module
-    import pu6e_qt.theme as theme_module
+    from ui.profile.store import GameProfileStore
+    import ui.app.bootstrap as application_module
+    import ui.launcher.window as launcher_module
+    import ui.runtime.renderer as renderer_settings_module
+    import ui.runtime.surface as surface_module
+    import ui.shared.theme as theme_module
 
     class StubApplication:
         def __init__(self, arguments: list[str]) -> None:
@@ -243,14 +244,12 @@ def test_launcher_startup_allows_missing_configuration(
     errors: list[tuple[None, str, str]] = []
     monkeypatch.setattr(application_module, "_CONFIG_PATH", config_path)
     monkeypatch.setattr(
-        application_module.renderer_settings,
+        renderer_settings_module,
         "resolve_renderer",
-        lambda renderer, _gpu: application_module.renderer_settings.RendererRuntime(
-            renderer
-        ),
+        lambda renderer, _gpu: renderer_settings_module.RendererRuntime(renderer),
     )
     monkeypatch.setattr(
-        application_module.renderer_settings,
+        renderer_settings_module,
         "configure_renderer",
         lambda *_arguments: None,
     )
@@ -259,12 +258,14 @@ def test_launcher_startup_allows_missing_configuration(
         "QApplication",
         lambda arguments: applications.append(StubApplication(arguments)) or applications[-1],
     )
-    monkeypatch.setattr(canvas_module, "configure_opengl_format", lambda: None)
+    monkeypatch.setattr(surface_module, "configure_opengl_format", lambda: None)
     monkeypatch.setattr(theme_module, "apply_theme", lambda application: None)
     monkeypatch.setattr(
         launcher_module,
         "LauncherWindow",
-        lambda store, _runtime: launchers.append(StubLauncher(store)) or launchers[-1],
+        lambda store, _settings, _runtime, **_callbacks: (
+            launchers.append(StubLauncher(store)) or launchers[-1]
+        ),
     )
     monkeypatch.setattr(
         QtWidgets.QMessageBox,
@@ -288,11 +289,12 @@ def test_renderer_fallback_warning_opens_after_launcher_is_visible(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from PySide6 import QtWidgets
-    from pu6e_qt.game_profiles import GameProfileStore
-    import pu6e_qt.application as application_module
-    import pu6e_qt.canvas as canvas_module
-    import pu6e_qt.launcher as launcher_module
-    import pu6e_qt.theme as theme_module
+    from ui.profile.store import GameProfileStore
+    import ui.app.bootstrap as application_module
+    import ui.launcher.window as launcher_module
+    import ui.runtime.renderer as renderer_settings_module
+    import ui.runtime.surface as surface_module
+    import ui.shared.theme as theme_module
 
     class StubApplication:
         def exec(self) -> int:
@@ -309,28 +311,30 @@ def test_renderer_fallback_warning_opens_after_launcher_is_visible(
     config_path = tmp_path / "missing.conf"
     launchers: list[StubLauncher] = []
     warnings: list[tuple[StubLauncher, str, str]] = []
-    runtime = application_module.renderer_settings.RendererRuntime(
-        application_module.renderer_settings.RendererMode.OPENGL,
+    runtime = renderer_settings_module.RendererRuntime(
+        renderer_settings_module.RendererMode.OPENGL,
         notice="Vulkan fallback",
     )
     monkeypatch.setattr(application_module, "_CONFIG_PATH", config_path)
     monkeypatch.setattr(
-        application_module.renderer_settings,
+        renderer_settings_module,
         "resolve_renderer",
         lambda _renderer, _gpu: runtime,
     )
     monkeypatch.setattr(
-        application_module.renderer_settings,
+        renderer_settings_module,
         "configure_renderer",
         lambda *_arguments: None,
     )
     monkeypatch.setattr(QtWidgets, "QApplication", lambda _arguments: StubApplication())
-    monkeypatch.setattr(canvas_module, "configure_opengl_format", lambda: None)
+    monkeypatch.setattr(surface_module, "configure_opengl_format", lambda: None)
     monkeypatch.setattr(theme_module, "apply_theme", lambda _application: None)
     monkeypatch.setattr(
         launcher_module,
         "LauncherWindow",
-        lambda store, _runtime: launchers.append(StubLauncher(store)) or launchers[-1],
+        lambda store, _settings, _runtime, **_callbacks: (
+            launchers.append(StubLauncher(store)) or launchers[-1]
+        ),
     )
 
     def record_warning(parent: StubLauncher, title: str, message: str) -> None:
@@ -350,7 +354,7 @@ def test_application_package_import_is_wx_free() -> None:
     import sys
 
     importlib.import_module("pu6e")
-    importlib.import_module("pu6e_qt.application")
+    importlib.import_module("ui.app.bootstrap")
 
     assert "wx" not in sys.modules
     assert "mapedit_wxgl" not in sys.modules

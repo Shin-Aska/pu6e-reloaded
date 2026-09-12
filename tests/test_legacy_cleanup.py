@@ -38,14 +38,16 @@ def test_obsolete_legacy_artifact_is_not_shipped(relative_path: str) -> None:
     assert not (_PROJECT_ROOT / relative_path).exists()
 
 
-def test_game_engine_contains_no_presentation_or_legacy_imports() -> None:
+def test_game_package_is_qt_ui_and_opengl_free() -> None:
     forbidden_import = re.compile(
-        r"^\s*(?:from|import)\s+(?:wx|PySide6|OpenGL|pu6e_qt|U6|mapedit_gl|fastgl)(?:[.\s]|$)",
+        r"^\s*(?:from|import)\s+(?:wx|PySide6|PyQt6|OpenGL|ui|U6|mapedit_gl|fastgl)(?:[.\s]|$)",
         re.MULTILINE,
     )
+    sources = tuple((_PROJECT_ROOT / "src" / "game").rglob("*.py"))
+    assert sources
     offenders = tuple(
         source.relative_to(_PROJECT_ROOT)
-        for source in (_PROJECT_ROOT / "pu6e_core").rglob("*.py")
+        for source in sources
         if forbidden_import.search(source.read_text(encoding="utf-8"))
     )
 
@@ -62,7 +64,7 @@ def test_package_declares_only_active_top_level_modules() -> None:
 
 
 def test_game_engine_utilities_exclude_wx_only_helpers() -> None:
-    from pu6e_core.models import coordinates
+    from game.models import coordinates
 
     assert not hasattr(coordinates, "index_ref")
     assert not hasattr(coordinates, "Bunch")

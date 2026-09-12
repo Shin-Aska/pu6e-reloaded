@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from pu6e_core.formats.assets import (
+from game.format.assets import (
     decode_animation,
     decode_books,
     decode_font,
@@ -15,15 +15,15 @@ from pu6e_core.formats.assets import (
     decode_tiles,
     decode_words,
 )
-from pu6e_core.formats.errors import FormatError
-from pu6e_core.formats.lzw import decompress_buffer
-from pu6e_core.formats.resources import (
+from game.format.errors import FormatError
+from game.format.lzw import decompress_buffer
+from game.format.resources import (
     decode_resource,
     palette_filename,
     required_game_files,
     resolve_dos_path,
 )
-from pu6e_core.models.assets import FontData, ObjectCatalog, Palette
+from game.models.assets import FontData, ObjectCatalog, Palette
 
 if TYPE_CHECKING:
     from pathlib import Path

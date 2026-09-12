@@ -7,7 +7,7 @@ import pytest
 from game_fixtures import write_game_fixture
 from PySide6.QtWidgets import QApplication
 
-from pu6e_qt.controller import EditorController
+from ui.app.controller import EditorController
 
 
 @pytest.fixture(scope="session")
@@ -25,7 +25,7 @@ def tools_controller(tmp_path: Path, qapp: QApplication) -> EditorController:
 
 
 def test_goto_accepts_bounded_hexadecimal_coordinates(qapp: QApplication) -> None:
-    from pu6e_qt.dialogs import GoToDialog
+    from ui.app.map.dialogs import GoToDialog
 
     dialog = GoToDialog((0, 0, 0))
     dialog.x.lineEdit().setText("134")
@@ -39,7 +39,7 @@ def test_goto_accepts_bounded_hexadecimal_coordinates(qapp: QApplication) -> Non
 
 
 def test_goto_does_not_accept_out_of_range_hexadecimal_coordinate(qapp: QApplication) -> None:
-    from pu6e_qt.dialogs import GoToDialog
+    from ui.app.map.dialogs import GoToDialog
 
     dialog = GoToDialog((0, 0, 0))
     dialog.x.lineEdit().setText("400")
@@ -50,7 +50,7 @@ def test_goto_does_not_accept_out_of_range_hexadecimal_coordinate(qapp: QApplica
 
 
 def test_chunk_inspector_updates_fixture_map(tools_controller: EditorController) -> None:
-    from pu6e_qt.tools import ChunkInspector
+    from ui.app.terrain.chunks import ChunkInspector
 
     controller = tools_controller
     old_chunk, _, _ = controller.session.editor.chunk_at(0, 0, 0)
@@ -64,7 +64,7 @@ def test_chunk_inspector_updates_fixture_map(tools_controller: EditorController)
 
 
 def test_book_viewer_is_read_only_and_handles_bookless_game_data(tools_controller: EditorController) -> None:
-    from pu6e_qt.tools import BookViewer
+    from ui.app.books.viewer import BookViewer
 
     state = tools_controller.session.state
     state.assets = replace(state.assets, books=())
@@ -76,7 +76,7 @@ def test_book_viewer_is_read_only_and_handles_bookless_game_data(tools_controlle
 
 
 def test_book_viewer_treats_empty_md_se_entries_as_bookless(tools_controller: EditorController) -> None:
-    from pu6e_qt.tools import BookViewer
+    from ui.app.books.viewer import BookViewer
 
     state = tools_controller.session.state
     state.assets = replace(state.assets, books=("",) * 128)
@@ -88,7 +88,7 @@ def test_book_viewer_treats_empty_md_se_entries_as_bookless(tools_controller: Ed
 def test_book_viewer_replaces_text_when_controller_loads_another_game(
     tools_controller: EditorController, tmp_path: Path,
 ) -> None:
-    from pu6e_qt.tools import BookViewer
+    from ui.app.books.viewer import BookViewer
 
     state = tools_controller.session.state
     state.assets = replace(state.assets, books=("First world book",))
@@ -107,7 +107,7 @@ def test_book_viewer_replaces_text_when_controller_loads_another_game(
 def test_tile_browser_replaces_catalog_when_controller_loads_another_game(
     tools_controller: EditorController, tmp_path: Path,
 ) -> None:
-    from pu6e_qt.tiles import TileBrowser
+    from ui.app.terrain.tiles import TileBrowser
 
     browser = TileBrowser(tools_controller)
     assert "tools" in browser.grid.item(0).text()

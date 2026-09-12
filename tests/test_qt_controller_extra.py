@@ -6,7 +6,7 @@ import pytest
 from game_fixtures import write_game_fixture
 from PySide6.QtWidgets import QApplication
 
-from pu6e_qt.controller import EditorController
+from ui.app.controller import EditorController
 
 
 @pytest.fixture(scope="session")
@@ -99,7 +99,7 @@ def test_failed_load_preserves_session_selection_and_pending_undo(
 def test_commands_keep_originating_session_after_controller_replacement(
     controller: EditorController, tmp_path: Path,
 ) -> None:
-    from pu6e_qt.commands import ChunkSetCommand, TilePaintCommand
+    from ui.app.commands import ChunkSetCommand, TilePaintCommand
 
     session = controller.session
     tile_command = TilePaintCommand(session.editor, 7, 0, 0, 0)

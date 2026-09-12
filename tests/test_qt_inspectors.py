@@ -10,7 +10,7 @@ from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
 if TYPE_CHECKING:
-    from pu6e_qt.controller import EditorController
+    from ui.app.controller import EditorController
 
 
 @pytest.fixture(scope="session")
@@ -20,7 +20,7 @@ def application() -> QApplication:
 
 @pytest.fixture
 def game(tmp_path: Path, application: QApplication) -> EditorController:
-    from pu6e_qt.controller import EditorController
+    from ui.app.controller import EditorController
 
     game_dir = tmp_path / "fp"
     write_game_fixture(game_dir, "fp", "inspected object")
@@ -30,7 +30,7 @@ def game(tmp_path: Path, application: QApplication) -> EditorController:
 
 
 def test_inspector_population_does_not_dirty_the_world(game: EditorController) -> None:
-    from pu6e_qt.inspectors import ObjectInspector
+    from ui.app.objects.inspector import ObjectInspector
 
     current = game.session.editor.new_object()
     current.quality = 17
@@ -44,7 +44,7 @@ def test_inspector_population_does_not_dirty_the_world(game: EditorController) -
 
 
 def test_inspector_fields_mutate_original_and_bound_status(game: EditorController) -> None:
-    from pu6e_qt.inspectors import ObjectInspector
+    from ui.app.objects.inspector import ObjectInspector
 
     current = game.session.editor.new_object()
     inspector = ObjectInspector(game)
@@ -60,7 +60,7 @@ def test_inspector_fields_mutate_original_and_bound_status(game: EditorControlle
 
 
 def test_inspector_empty_selection_disables_fields(game: EditorController) -> None:
-    from pu6e_qt.inspectors import ObjectInspector
+    from ui.app.objects.inspector import ObjectInspector
 
     inspector = ObjectInspector(game)
 
@@ -70,7 +70,7 @@ def test_inspector_empty_selection_disables_fields(game: EditorController) -> No
 
 
 def test_stack_displays_nested_real_objects_and_selects_topmost(game: EditorController) -> None:
-    from pu6e_qt.inspectors import ObjectStack
+    from ui.app.objects.tree import ObjectStack
 
     parent = game.session.editor.new_object()
     child = game.session.editor.new_object()
@@ -88,7 +88,7 @@ def test_stack_displays_nested_real_objects_and_selects_topmost(game: EditorCont
 
 
 def test_stack_copy_paste_after_clones_once_and_consumes_clipboard(game: EditorController) -> None:
-    from pu6e_qt.inspectors import ObjectStack
+    from ui.app.objects.tree import ObjectStack
 
     original = game.session.editor.new_object()
     game.session.editor.add_object_at(original, 0, 0, 0)
@@ -107,7 +107,7 @@ def test_stack_copy_paste_after_clones_once_and_consumes_clipboard(game: EditorC
 
 
 def test_stack_cut_and_paste_into_preserves_identity(game: EditorController) -> None:
-    from pu6e_qt.inspectors import ObjectStack
+    from ui.app.objects.tree import ObjectStack
 
     container = game.session.editor.new_object()
     moving = game.session.editor.new_object()
@@ -128,7 +128,7 @@ def test_stack_cut_and_paste_into_preserves_identity(game: EditorController) -> 
 
 
 def test_stack_move_rejects_descendant_cycle(game: EditorController) -> None:
-    from pu6e_qt.inspectors import ObjectStack
+    from ui.app.objects.tree import ObjectStack
 
     parent = game.session.editor.new_object()
     child = game.session.editor.new_object()
@@ -149,7 +149,7 @@ def test_stack_move_rejects_descendant_cycle(game: EditorController) -> None:
 
 
 def test_stack_empty_location_does_not_create_or_dirty_point(game: EditorController) -> None:
-    from pu6e_qt.inspectors import ObjectStack
+    from ui.app.objects.tree import ObjectStack
 
     stack = ObjectStack(game)
     game.session.editor.clear_changes()
@@ -162,7 +162,7 @@ def test_stack_empty_location_does_not_create_or_dirty_point(game: EditorControl
 
 
 def test_stack_can_create_and_paste_into_an_empty_location(game: EditorController) -> None:
-    from pu6e_qt.inspectors import ObjectStack
+    from ui.app.objects.tree import ObjectStack
 
     stack = ObjectStack(game)
     stack.set_point(None, 0x134, 0x16C, 0)
@@ -179,7 +179,7 @@ def test_stack_can_create_and_paste_into_an_empty_location(game: EditorControlle
 
 
 def test_stack_native_keyboard_copy_paste_drives_game_objects(game: EditorController) -> None:
-    from pu6e_qt.inspectors import ObjectStack
+    from ui.app.objects.tree import ObjectStack
 
     original = game.session.editor.new_object()
     game.session.editor.add_object_at(original, 0, 0, 0)
@@ -203,7 +203,8 @@ def test_stack_native_keyboard_copy_paste_drives_game_objects(game: EditorContro
 def test_inspector_and_stack_clear_old_objects_when_session_changes(
     game: EditorController, tmp_path: Path,
 ) -> None:
-    from pu6e_qt.inspectors import ObjectInspector, ObjectStack
+    from ui.app.objects.inspector import ObjectInspector
+    from ui.app.objects.tree import ObjectStack
 
     previous_session = game.session
     original = previous_session.editor.new_object()

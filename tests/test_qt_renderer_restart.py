@@ -7,9 +7,10 @@ import pytest
 from PySide6.QtCore import QCoreApplication, QProcess
 from PySide6.QtWidgets import QApplication, QDialog, QMessageBox, QWidget
 
-from pu6e_qt.game_profiles import GameProfileStore
-from pu6e_qt.renderer_settings import RendererMode, RendererRuntime
-from pu6e_qt.vulkan_devices import VulkanDeviceSelector
+from ui.profile.store import GameProfileStore
+from ui.runtime.renderer import RendererMode, RendererRuntime
+from ui.runtime.vulkan import VulkanDeviceSelector
+from ui.settings.store import SettingsStore
 
 
 @pytest.fixture(scope="session")
@@ -23,16 +24,18 @@ def test_renderer_change_offers_later_without_restarting(
     launcher_app: QApplication,
 ) -> None:
     # Given: launcher settings will save a renderer different from the current one.
-    import pu6e_qt.launcher as launcher_module
+    import ui.launcher.window as launcher_module
+    import ui.settings.dialog as settings_dialog_module
 
-    store = GameProfileStore(tmp_path / "config.ini")
+    settings = SettingsStore(tmp_path / "config.ini")
+    store = GameProfileStore(settings)
     prompts: list[launcher_module.LauncherWindow] = []
     restarts: list[bool] = []
 
     class StubSettingsDialog:
         DialogCode = QDialog.DialogCode
 
-        def __init__(self, settings_store: GameProfileStore, _parent: QWidget) -> None:
+        def __init__(self, settings_store: SettingsStore, _parent: QWidget) -> None:
             self.store = settings_store
 
         def exec(self) -> QDialog.DialogCode:
@@ -41,21 +44,18 @@ def test_renderer_change_offers_later_without_restarting(
 
     monkeypatch.setattr(launcher_module, "LauncherSettingsDialog", StubSettingsDialog)
     monkeypatch.setattr(
-        launcher_module,
+        settings_dialog_module,
         "offer_renderer_restart",
         lambda parent: prompts.append(parent) or False,
-        raising=False,
-    )
-    monkeypatch.setattr(
-        launcher_module,
-        "restart_application",
-        lambda: restarts.append(True) or True,
         raising=False,
     )
     monkeypatch.setattr(QMessageBox, "information", lambda *_arguments: None)
     launcher = launcher_module.LauncherWindow(
         store,
+        settings,
         RendererRuntime(RendererMode.VULKAN),
+        launch_editor=lambda _path: pytest.fail("unexpected editor launch"),
+        restart_application=lambda: restarts.append(True) or True,
     )
 
     # When: the user saves settings and chooses Later.
@@ -73,15 +73,17 @@ def test_renderer_change_restarts_when_restart_now_is_chosen(
     launcher_app: QApplication,
 ) -> None:
     # Given: changed renderer settings and a successful detached relaunch seam.
-    import pu6e_qt.launcher as launcher_module
+    import ui.launcher.window as launcher_module
+    import ui.settings.dialog as settings_dialog_module
 
-    store = GameProfileStore(tmp_path / "config.ini")
+    settings = SettingsStore(tmp_path / "config.ini")
+    store = GameProfileStore(settings)
     restarts: list[bool] = []
 
     class StubSettingsDialog:
         DialogCode = QDialog.DialogCode
 
-        def __init__(self, settings_store: GameProfileStore, _parent: QWidget) -> None:
+        def __init__(self, settings_store: SettingsStore, _parent: QWidget) -> None:
             self.store = settings_store
 
         def exec(self) -> QDialog.DialogCode:
@@ -90,21 +92,18 @@ def test_renderer_change_restarts_when_restart_now_is_chosen(
 
     monkeypatch.setattr(launcher_module, "LauncherSettingsDialog", StubSettingsDialog)
     monkeypatch.setattr(
-        launcher_module,
+        settings_dialog_module,
         "offer_renderer_restart",
         lambda _parent: True,
-        raising=False,
-    )
-    monkeypatch.setattr(
-        launcher_module,
-        "restart_application",
-        lambda: restarts.append(True) or True,
         raising=False,
     )
     monkeypatch.setattr(QMessageBox, "information", lambda *_arguments: None)
     launcher = launcher_module.LauncherWindow(
         store,
+        settings,
         RendererRuntime(RendererMode.VULKAN),
+        launch_editor=lambda _path: pytest.fail("unexpected editor launch"),
+        restart_application=lambda: restarts.append(True) or True,
     )
 
     # When: the user chooses Restart now.
@@ -121,15 +120,17 @@ def test_vulkan_gpu_change_offers_restart(
     launcher_app: QApplication,
 ) -> None:
     # Given: Vulkan remains selected while its GPU preference changes.
-    import pu6e_qt.launcher as launcher_module
+    import ui.launcher.window as launcher_module
+    import ui.settings.dialog as settings_dialog_module
 
-    store = GameProfileStore(tmp_path / "config.ini")
+    settings = SettingsStore(tmp_path / "config.ini")
+    store = GameProfileStore(settings)
     prompts: list[launcher_module.LauncherWindow] = []
 
     class StubSettingsDialog:
         DialogCode = QDialog.DialogCode
 
-        def __init__(self, settings_store: GameProfileStore, _parent: QWidget) -> None:
+        def __init__(self, settings_store: SettingsStore, _parent: QWidget) -> None:
             self.store = settings_store
 
         def exec(self) -> QDialog.DialogCode:
@@ -141,13 +142,16 @@ def test_vulkan_gpu_change_offers_restart(
 
     monkeypatch.setattr(launcher_module, "LauncherSettingsDialog", StubSettingsDialog)
     monkeypatch.setattr(
-        launcher_module,
+        settings_dialog_module,
         "offer_renderer_restart",
         lambda parent: prompts.append(parent) or False,
     )
     launcher = launcher_module.LauncherWindow(
         store,
+        settings,
         RendererRuntime(RendererMode.VULKAN),
+        launch_editor=lambda _path: pytest.fail("unexpected editor launch"),
+        restart_application=lambda: True,
     )
 
     # When: the GPU-only change is saved.
@@ -162,7 +166,7 @@ def test_restart_application_quits_only_after_replacement_starts(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     # Given: the operating system accepts a detached replacement process.
-    from pu6e_qt.application_restart import restart_application
+    from ui.runtime.restart import restart_application
 
     launches: list[tuple[str, tuple[str, ...], str]] = []
     quits: list[bool] = []
@@ -193,7 +197,7 @@ def test_restart_application_keeps_current_process_when_relaunch_fails(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     # Given: the operating system rejects the detached replacement process.
-    from pu6e_qt.application_restart import restart_application
+    from ui.runtime.restart import restart_application
 
     quits: list[bool] = []
     monkeypatch.setattr(
@@ -215,7 +219,7 @@ def test_restart_prompt_offers_restart_now_and_later(
     launcher_app: QApplication,
 ) -> None:
     # Given: a renderer change needs a restart decision.
-    from pu6e_qt.application_restart import build_renderer_restart_dialog
+    from ui.settings.dialog import build_renderer_restart_dialog
 
     # When: the native restart prompt is created.
     dialog = build_renderer_restart_dialog()

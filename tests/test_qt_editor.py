@@ -17,7 +17,7 @@ def qapp() -> QApplication:
     (("fp", "false prophet"), ("md", "martian dreams"), ("se", "savage empire")),
 )
 def test_qt_controller_loads_every_supported_game(tmp_path: Path, game: str, label: str) -> None:
-    from pu6e_qt.controller import EditorController
+    from ui.app.controller import EditorController
 
     game_dir = tmp_path / game
     write_game_fixture(game_dir, game, label)
@@ -37,7 +37,7 @@ def test_qt_controller_loads_every_supported_game(tmp_path: Path, game: str, lab
 def test_qt_controller_preserves_save_write_order(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from pu6e_qt.controller import EditorController
+    from ui.app.controller import EditorController
 
     calls: list[str] = []
     game_dir = tmp_path / "fp"
@@ -62,14 +62,14 @@ def test_qt_controller_preserves_save_write_order(
 
 
 def test_qt_controller_rejects_invalid_background_tile() -> None:
-    from pu6e_qt.controller import EditorController, InvalidBackgroundTileError
+    from ui.app.controller import EditorController, InvalidBackgroundTileError
 
     with pytest.raises(InvalidBackgroundTileError):
         EditorController().paint_tile(256, 0, 0, 0)
 
 
 def test_qt_terrain_edits_support_undo_and_redo(tmp_path: Path, qapp: QApplication) -> None:
-    from pu6e_qt.controller import EditorController
+    from ui.app.controller import EditorController
 
     game_dir = tmp_path / "fp"
     write_game_fixture(game_dir, "fp", "terrain")
@@ -92,8 +92,8 @@ def test_qt_terrain_edits_support_undo_and_redo(tmp_path: Path, qapp: QApplicati
 
 
 def test_object_inspector_updates_selected_object(tmp_path: Path, qapp: QApplication) -> None:
-    from pu6e_qt.controller import EditorController
-    from pu6e_qt.inspectors import ObjectInspector
+    from ui.app.controller import EditorController
+    from ui.app.objects.inspector import ObjectInspector
 
     game_dir = tmp_path / "fp"
     write_game_fixture(game_dir, "fp", "object")
@@ -111,8 +111,8 @@ def test_object_inspector_updates_selected_object(tmp_path: Path, qapp: QApplica
 
 
 def test_object_stack_populates_selected_point(tmp_path: Path, qapp: QApplication) -> None:
-    from pu6e_qt.controller import EditorController
-    from pu6e_qt.inspectors import ObjectStack
+    from ui.app.controller import EditorController
+    from ui.app.objects.tree import ObjectStack
 
     game_dir = tmp_path / "fp"
     write_game_fixture(game_dir, "fp", "stack")
@@ -131,7 +131,7 @@ def test_object_stack_populates_selected_point(tmp_path: Path, qapp: QApplicatio
 
 
 def test_hex_coordinate_box_parses_hexadecimal(qapp: QApplication) -> None:
-    from pu6e_qt.widgets import HexSpinBox
+    from ui.shared.widgets import HexSpinBox
 
     coordinate = HexSpinBox(0x3FF)
     coordinate.setValue(0x16C)
@@ -143,7 +143,7 @@ def test_hex_coordinate_box_parses_hexadecimal(qapp: QApplication) -> None:
 def test_active_entrypoint_does_not_import_wx() -> None:
     import ast
 
-    entrypoint = Path(__file__).resolve().parents[1] / "pu6e.py"
+    entrypoint = Path(__file__).resolve().parents[1] / "src" / "pu6e.py"
     imported_names = {
         node.module or ""
         for node in ast.walk(ast.parse(entrypoint.read_text()))

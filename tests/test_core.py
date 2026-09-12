@@ -3,23 +3,23 @@ from struct import pack
 
 import pytest
 
-from pu6e_core.formats import lzw
-from pu6e_core.formats.assets import (
+from game.format import lzw
+from game.format.assets import (
     decode_books,
     decode_names,
     decode_palette,
     decode_tiles,
     decode_words,
 )
-from pu6e_core.formats.errors import FormatError
-from pu6e_core.formats.terrain import decode_chunks
-from pu6e_core.models.assets import ObjectCatalog, Palette
-from pu6e_core.models.coordinates import adjust_coords_for_level, world_to_chunk
-from pu6e_core.models.game import GameType
-from pu6e_core.models.objects import ObjectPoint, WorldObject
-from pu6e_core.services.loader import WorldLoader
-from pu6e_qt.rendering import batch
-from pu6e_qt.rendering.pixels import fontchar_to_rgba, indexed_to_rgba
+from game.format.errors import FormatError
+from game.format.terrain import decode_chunks
+from game.models.assets import ObjectCatalog, Palette
+from game.models.coordinates import adjust_coords_for_level, world_to_chunk
+from game.models.game import GameType
+from game.models.objects import ObjectPoint, WorldObject
+from game.services.loader import WorldLoader
+from ui.rendering import batch
+from ui.rendering.pixels import fontchar_to_rgba, indexed_to_rgba
 from tests.game_fixtures import pack_codes, write_game_fixture
 
 

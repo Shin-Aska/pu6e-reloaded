@@ -5,12 +5,13 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from pu6e_core.models.game import GameType
-from pu6e_core.services.loader import WorldLoader
-from pu6e_core.services.saver import WorldSaver
-from pu6e_qt.conversations import read_conversations
-from pu6e_qt.game_profiles import GameProfileStore
+from game.models.game import GameType
+from game.services.conversations import read_conversations
+from game.services.loader import WorldLoader
+from game.services.saver import WorldSaver
 from tests.game_fixtures import write_game_fixture
+from ui.profile.store import GameProfileStore
+from ui.settings.store import SettingsStore
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -40,7 +41,7 @@ def test_launcher_accepts_case_insensitive_dos_installations(
 ) -> None:
     directory = _case_variant_installation(tmp_path, game, mixed_case)
 
-    profile = GameProfileStore(tmp_path / "config.ini").inspect(game, directory)
+    profile = GameProfileStore(SettingsStore(tmp_path / "config.ini")).inspect(game, directory)
 
     assert profile.issue is None
     assert profile.missing_files == ()

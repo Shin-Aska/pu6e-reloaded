@@ -4,12 +4,12 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from pu6e_core.formats.npcs import decode_objlist
-from pu6e_core.formats.objects import encode_object_block
-from pu6e_core.models.coordinates import pack_coords, unpack_coords
-from pu6e_core.models.objects import ObjectPoint, WorldObject
-from pu6e_core.services.loader import WorldLoader
-from pu6e_core.services.saver import WorldSaver
+from game.format.npcs import decode_objlist
+from game.format.objects import encode_object_block
+from game.models.coordinates import pack_coords, unpack_coords
+from game.models.objects import ObjectPoint, WorldObject
+from game.services.loader import WorldLoader
+from game.services.saver import WorldSaver
 from tests.game_fixtures import write_game_fixture
 
 if TYPE_CHECKING:
