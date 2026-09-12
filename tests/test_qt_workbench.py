@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QPaintEvent
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QWidget
 
@@ -11,6 +12,7 @@ import mapedit_gl as renderer
 from test_core import write_game_fixture
 from U6 import obj
 from pu6e_qt.controller import EditorController
+from pu6e_qt.main_window import MainWindow
 from pu6e_qt.renderer_settings import RendererMode, RendererRuntime
 
 
@@ -154,6 +156,40 @@ def test_zoom_indicators_follow_toolbar_actions_immediately(workbench) -> None:
 
     assert workbench.zoom_label.text() == "50%"
     assert workbench.actions.zoom_selector.currentText() == "50%"
+
+
+@pytest.mark.parametrize("factor", (0.5, 2.0))
+def test_minimap_repaints_when_zooming_without_moving(
+    workbench: MainWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    workbench_app: QApplication,
+    factor: float,
+) -> None:
+    # Given: a visible minimap at a fixed camera position.
+    minimap = workbench.docks.minimap
+    painted_scales: list[float] = []
+    paint_event = minimap.paintEvent
+
+    def record_paint(event: QPaintEvent) -> None:
+        painted_scales.append(renderer.scale_factor)
+        paint_event(event)
+
+    monkeypatch.setattr(minimap, "paintEvent", record_paint)
+    workbench.docks.minimap_dock.setFloating(True)
+    workbench.docks.minimap_dock.show()
+    workbench_app.processEvents()
+    workbench_app.processEvents()
+    painted_scales.clear()
+    position = workbench.controller.position
+
+    # When: zoom changes without any navigation.
+    workbench.canvas.zoom(factor)
+    workbench_app.processEvents()
+    workbench_app.processEvents()
+
+    # Then: the minimap repaints at the new zoom without moving the camera.
+    assert factor in painted_scales
+    assert workbench.controller.position == position
 
 
 def test_zoom_selector_applies_an_explicit_percentage(workbench) -> None:

@@ -80,6 +80,7 @@ class MainWindow(QMainWindow):
         self.controller.terrain_mode_changed.connect(self.update_tool_status)
         self.canvas.fatal_error.connect(self._show_render_error)
         self.canvas.zoom_changed.connect(self._update_zoom)
+        self.canvas.zoom_changed.connect(self.docks.minimap.update)
 
     def _update_position(self, x: int, y: int, z: int) -> None:
         self.location_label.setText(f"X {x:03x}    Y {y:03x}    Z {z}")
