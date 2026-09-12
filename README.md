@@ -206,6 +206,40 @@ Windows setup and compilation use the built-in PowerShell by its absolute path,
 so a separate PowerShell 7 installation is not required. The release smoke-check
 scripts use PowerShell 7.
 
+### PyCharm
+
+Open this folder in PyCharm. Shared run/debug configurations in [`.run/`](.run/)
+launch the same editor and use the same interpreters as `.vscode/launch.json`.
+Keep PyCharm's bundled **Shell scripts** plugin enabled so the separate setup
+configurations can run.
+
+For the first launch, run the matching **Setup (Windows)** or **Setup (Linux)**
+configuration, then add the existing `.venv` interpreter in **Settings > Python >
+Interpreter** if PyCharm has not detected it. Select **Run editor (Windows)** or
+**Run editor (Linux)** in the run selector and choose **Run** or **Debug**:
+
+- **Run editor (Windows)** launches `pu6e.py` directly with
+  `.venv/Scripts/python.exe`.
+- **Run editor (Linux)** launches `pu6e.py` directly with
+  `.venv/bin/python`. Use this configuration in PyCharm running on Linux.
+
+Both entries use the project root as the working directory and emulate a
+terminal in the output console. Run **Setup** separately when preparing or
+refreshing the environment; **Run editor** does not run setup. Windows setup
+also prepares the Vulkan runtime.
+
+The Windows setup entry uses the built-in PowerShell at
+`C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe`. If Windows is
+installed elsewhere, update its **Interpreter path** in **Run > Edit
+Configurations**. The Linux setup entry uses `/bin/bash`.
+
+PyCharm manages debugger preferences separately from these shared configurations.
+For behavior similar to VS Code's `justMyCode: true`, enable **Do not step into
+library scripts** under **Settings > Build, Execution, Deployment > Debugger >
+Stepping > Python** ([stepping settings](https://www.jetbrains.com/help/pycharm/settings-debugger-stepping.html)).
+To match `subProcess: false`, disable **Attach to subprocess automatically while
+debugging** in the [Python debugger settings](https://www.jetbrains.com/help/pycharm/debugger-python.html).
+
 The original documentation and technical references are retained for historical
 reference.
 The original 2003 README, installation instructions, and copyright notice are
