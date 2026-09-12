@@ -5,10 +5,11 @@ from pathlib import Path
 import pytest
 from PySide6.QtWidgets import QApplication, QWidget
 
-from pu6e_qt.game_profiles import GameProfileStore
-from pu6e_qt.launcher import LauncherWindow
-from pu6e_qt.renderer_settings import RendererMode, RendererRuntime
-from test_core import write_game_fixture
+from ui.profile.store import GameProfileStore
+from ui.launcher.window import LauncherWindow
+from ui.runtime.renderer import RendererMode, RendererRuntime
+from ui.settings.store import SettingsStore
+from game_fixtures import write_game_fixture
 
 
 @pytest.fixture(scope="session")
@@ -18,13 +19,20 @@ def atlas_app() -> QApplication:
 
 @pytest.fixture
 def atlas_launcher(tmp_path: Path, atlas_app: QApplication) -> LauncherWindow:
-    store = GameProfileStore(tmp_path / "launcher.conf")
+    settings = SettingsStore(tmp_path / "launcher.conf")
+    store = GameProfileStore(settings)
     for game in ("fp", "md", "se"):
         directory = tmp_path / game
         write_game_fixture(directory, game, game)
         store.set_directory(game, directory)
     (tmp_path / "md" / "savegame" / "objlist").unlink()
-    launcher = LauncherWindow(store, RendererRuntime(RendererMode.OPENGL))
+    launcher = LauncherWindow(
+        store,
+        settings,
+        RendererRuntime(RendererMode.OPENGL),
+        launch_editor=lambda _path: pytest.fail("unexpected editor launch"),
+        restart_application=lambda: True,
+    )
     launcher.show()
     atlas_app.processEvents()
     yield launcher
@@ -82,9 +90,13 @@ def test_ready_world_has_one_primary_stage_launch_action(
 def test_unconfigured_diagnostic_is_not_elided_at_minimum_size(
     tmp_path: Path, atlas_app: QApplication
 ) -> None:
+    settings = SettingsStore(tmp_path / "launcher.conf")
     launcher = LauncherWindow(
-        GameProfileStore(tmp_path / "launcher.conf"),
+        GameProfileStore(settings),
+        settings,
         RendererRuntime(RendererMode.OPENGL),
+        launch_editor=lambda _path: pytest.fail("unexpected editor launch"),
+        restart_application=lambda: True,
     )
     launcher.resize(860, 560)
     launcher.show()

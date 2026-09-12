@@ -9,7 +9,7 @@ import pytest
 def test_user_configuration_uses_qt_standard_configuration_directory(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from pu6e_qt import configuration
+    from ui.settings import paths as configuration
 
     monkeypatch.setattr(
         configuration.QStandardPaths,
@@ -25,7 +25,7 @@ def test_user_configuration_uses_qt_standard_configuration_directory(
 def test_legacy_configuration_migration_preserves_game_profiles_and_relative_paths(
     tmp_path: Path,
 ) -> None:
-    from pu6e_qt.configuration import migrate_legacy_configuration
+    from ui.settings.paths import migrate_legacy_configuration
 
     project = tmp_path / "project"
     project.mkdir()
@@ -62,7 +62,7 @@ def test_legacy_configuration_migration_preserves_game_profiles_and_relative_pat
 
 
 def test_existing_user_configuration_is_never_overwritten(tmp_path: Path) -> None:
-    from pu6e_qt.configuration import migrate_legacy_configuration
+    from ui.settings.paths import migrate_legacy_configuration
 
     legacy = tmp_path / "pu6e.conf"
     legacy.write_text("[pu6e]\ngametype = fp\n", encoding="utf-8")
@@ -76,7 +76,7 @@ def test_existing_user_configuration_is_never_overwritten(tmp_path: Path) -> Non
 
 
 def test_first_run_without_legacy_configuration_creates_no_file(tmp_path: Path) -> None:
-    from pu6e_qt.configuration import migrate_legacy_configuration
+    from ui.settings.paths import migrate_legacy_configuration
 
     destination = tmp_path / "user-config" / "config.ini"
 
@@ -85,13 +85,45 @@ def test_first_run_without_legacy_configuration_creates_no_file(tmp_path: Path) 
     assert not destination.exists()
 
 
+def test_profile_and_renderer_updates_share_one_configuration_document(
+    tmp_path: Path,
+) -> None:
+    from ui.profile.store import GameProfileStore
+    from ui.runtime.vulkan import VulkanDeviceSelector
+    from ui.settings.renderer import RendererMode
+    from ui.settings.store import SettingsStore
+
+    config_path = tmp_path / "config.ini"
+    config_path.write_text(
+        "[unrelated]\nvalue = preserved\n\n[pu6e]\nwidth = 1280\n",
+        encoding="utf-8",
+    )
+    settings = SettingsStore(config_path)
+    profiles = GameProfileStore(settings)
+
+    profiles.set_directory("fp", tmp_path / "ultima")
+    settings.set_renderer_preferences(
+        RendererMode.VULKAN,
+        VulkanDeviceSelector("1002:73bf"),
+    )
+
+    saved = ConfigParser()
+    saved.read(config_path, encoding="utf-8")
+    assert saved.get("unrelated", "value") == "preserved"
+    assert saved.getint("pu6e", "width") == 1280
+    assert saved.get("game:fp", "gamedir") == str((tmp_path / "ultima").resolve())
+    assert saved.get("launcher", "renderer") == "vulkan"
+    assert saved.get("launcher", "vulkan_gpu") == "1002:73bf"
+
+
 def test_saving_first_game_creates_missing_user_configuration_directory(
     tmp_path: Path,
 ) -> None:
-    from pu6e_qt.game_profiles import GameProfileStore
+    from ui.profile.store import GameProfileStore
+    from ui.settings.store import SettingsStore
 
     destination = tmp_path / "user-config" / "pu6e-reloaded" / "config.ini"
-    store = GameProfileStore(destination)
+    store = GameProfileStore(SettingsStore(destination))
     game_directory = tmp_path / "ultima"
 
     store.set_directory("fp", game_directory)
@@ -102,7 +134,7 @@ def test_saving_first_game_creates_missing_user_configuration_directory(
 
 
 def test_application_defaults_to_the_user_configuration_file() -> None:
-    from pu6e_qt.application import _CONFIG_PATH
-    from pu6e_qt.configuration import user_configuration_path
+    from ui.app.bootstrap import _CONFIG_PATH
+    from ui.settings.paths import user_configuration_path
 
     assert _CONFIG_PATH == user_configuration_path()

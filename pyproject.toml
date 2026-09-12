@@ -13,7 +13,7 @@ license-files = [
   "LICENSE",
   "NOTICE.md",
   "THIRD_PARTY_NOTICES.md",
-  "docs/history/NOTICE-0.6.0.txt",
+  "src/docs/history/NOTICE-0.6.0.txt",
 ]
 authors = [{name = "Jim Ursetto"}]
 maintainers = [{name = "Richard Louie Orilla"}]
@@ -27,12 +27,56 @@ dependencies = [
 pu6e = "pu6e:main"
 
 [dependency-groups]
-dev = ["pytest>=9"]
+dev = [
+    "basedpyright>=1.40.1",
+    "pytest>=9",
+    "ruff>=0.16.7",
+]
 packaging = ["pyinstaller>=6.22"]
 
 [tool.setuptools]
-packages = ["U6", "pu6e_qt"]
-py-modules = ["fastgl", "mapedit_gl", "pu6e"]
+py-modules = ["pu6e"]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["game", "game.*", "ui", "ui.*"]
+namespaces = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.basedpyright]
+typeCheckingMode = "all"
+pythonVersion = "3.14"
+include = ["src/game"]
+exclude = ["**/__pycache__", ".venv", "build", "dist"]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+include = ["src/game/**/*.py", "pyproject.toml"]
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+  "COM812", "ISC001", "D203", "D213", # Formatter and docstyle conflicts.
+  "CPY001", # Attribution is maintained in the distributed NOTICE files.
+  "FBT001", "FBT002", # Existing domain operations accept positional flags.
+  "D105", "D107", # Standard magic methods and initializers are self-describing.
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101", "ARG", "PLR2004", "SLF001", "D", "INP001"]
+# Packed formats use their specified bit widths and offsets directly. FormatError
+# accepts a resource identifier as its first field, not an exception message.
+"src/game/format/*.py" = ["PLR2004", "EM101"]
+# Keep the dictionary decoder's state transitions together for binary auditing.
+"src/game/format/lzw.py" = ["C901", "PLR0912", "PLR0915"]
+# Domain coordinate and status operations use the same fixed wire bit widths.
+"src/game/models/coordinates.py" = ["PLR2004"]
+"src/game/models/objects.py" = ["PLR2004", "EM101", "TRY003"]
+"src/game/services/editor.py" = ["PLR2004", "EM101", "TRY003"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"

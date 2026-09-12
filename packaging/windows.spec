@@ -17,13 +17,18 @@ os.environ["PATH"] = os.pathsep.join([
 ])
 
 a = Analysis(
-    [str(project_directory / "pu6e.py")],
-    pathex=[str(project_directory)],
+    [str(project_directory / "src" / "pu6e.py")],
+    pathex=[str(project_directory / "src")],
     datas=[
         (str(project_directory / name), ".")
         for name in ("LICENSE", "NOTICE.md", "THIRD_PARTY_NOTICES.md")
     ] + copy_metadata("PyOpenGL"),
-    hiddenimports=collect_submodules("OpenGL.platform") + ["pu6e_qt.windows_opengl"],
+    hiddenimports=(
+        collect_submodules("OpenGL.platform")
+        + collect_submodules("game")
+        + collect_submodules("ui.rendering")
+        + ["OpenGL.GL", "ui.runtime.windows.opengl"]
+    ),
 )
 
 # Analysis reclassifies DLL inputs as binaries and searches their dependencies.

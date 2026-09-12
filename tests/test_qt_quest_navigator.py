@@ -1,14 +1,14 @@
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from struct import pack
 
 import pytest
+from game_fixtures import encode_lzw_literals, write_game_fixture
 from PySide6.QtWidgets import QApplication
 
-from test_core import encode_lzw_literals, write_game_fixture
-from U6 import NPCs
-from pu6e_qt.controller import EditorController
+from ui.app.controller import EditorController
 
 
 @pytest.fixture(scope="session")
@@ -23,7 +23,7 @@ def _conversation_archive(npc_id: int, name: str, dialogue: str) -> bytes:
 
 
 def test_conversation_reader_extracts_named_npcs_and_searchable_dialogue(tmp_path: Path) -> None:
-    from pu6e_qt.conversations import read_conversations
+    from game.services.conversations import read_conversations
 
     (tmp_path / "converse.a").write_bytes(
         _conversation_archive(2, "Dupre", '"The quest begins at the shrine."')
@@ -38,7 +38,7 @@ def test_conversation_reader_extracts_named_npcs_and_searchable_dialogue(tmp_pat
 
 
 def test_conversation_reader_supports_uncompressed_archive_entries(tmp_path: Path) -> None:
-    from pu6e_qt.conversations import read_conversations
+    from game.services.conversations import read_conversations
 
     payload = b"\xff\x05Lord British\xf1Ask about the gargoyles."
     (tmp_path / "converse.b").write_bytes(pack("<II", 0, 8) + bytes(4) + payload)
@@ -52,7 +52,7 @@ def test_quest_navigator_searches_dialogue_and_jumps_to_npc(
     tmp_path: Path,
     quest_app: QApplication,
 ) -> None:
-    from pu6e_qt.quest_navigator import QuestNavigator
+    from ui.app.quests.navigator import QuestNavigator
 
     game_directory = tmp_path / "quests"
     write_game_fixture(game_directory, "fp", "quest navigator")
@@ -61,8 +61,8 @@ def test_quest_navigator_searches_dialogue_and_jumps_to_npc(
     )
     controller = EditorController()
     controller.load_game(game_directory, "fp")
-    npc = NPCs.npcs[2]
-    npc.type = 1
+    npc = controller.session.state.npcs[2]
+    npc.packed_type = 1
     npc.x, npc.y, npc.z = 0x120, 0x160, 0
     navigator = QuestNavigator(controller)
 
@@ -80,7 +80,7 @@ def test_quest_navigator_activation_cannot_jump_to_an_unavailable_npc(
     tmp_path: Path,
     quest_app: QApplication,
 ) -> None:
-    from pu6e_qt.quest_navigator import QuestNavigator
+    from ui.app.quests.navigator import QuestNavigator
 
     game_directory = tmp_path / "unavailable-npc"
     write_game_fixture(game_directory, "fp", "unavailable npc")
@@ -90,8 +90,8 @@ def test_quest_navigator_activation_cannot_jump_to_an_unavailable_npc(
     controller = EditorController()
     controller.load_game(game_directory, "fp")
     controller.set_position(0x134, 0x16C, 0)
-    npc = NPCs.npcs[2]
-    npc.type = 0
+    npc = controller.session.state.npcs[2]
+    npc.packed_type = 0
     npc.x, npc.y, npc.z = 0x080, 0x090, 7
     navigator = QuestNavigator(controller)
     navigator.entries.setCurrentRow(0)
@@ -109,7 +109,7 @@ def test_quest_navigator_explains_when_conversation_archives_are_unavailable(
     tmp_path: Path,
     quest_app: QApplication,
 ) -> None:
-    from pu6e_qt.quest_navigator import QuestNavigator
+    from ui.app.quests.navigator import QuestNavigator
 
     game_directory = tmp_path / "no-conversations"
     write_game_fixture(game_directory, "md", "martian dreams")
@@ -118,6 +118,33 @@ def test_quest_navigator_explains_when_conversation_archives_are_unavailable(
 
     navigator = QuestNavigator(controller)
 
+    assert navigator.entries.count() == 0
+    assert "not available" in navigator.preview.toPlainText().lower()
+    assert not navigator.jump.isEnabled()
+
+
+def test_quest_navigator_clears_previous_dialogue_when_session_changes(
+    tmp_path: Path, quest_app: QApplication, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from ui.app.quests.navigator import QuestNavigator
+
+    directory = tmp_path / "first"
+    write_game_fixture(directory, "fp", "first")
+    first = _conversation_archive(2, "Dupre", "Bring the lens to the shrine.")[8:]
+    second = _conversation_archive(3, "Shamino", "Meet me at the castle.")[8:]
+    (directory / "converse.a").write_bytes(pack("<III", 0, 12, 12 + len(first)) + first + second)
+    controller = EditorController()
+    controller.load_game(directory, "fp")
+    navigator = QuestNavigator(controller)
+    assert navigator.entries.count() == 2
+    replacement = tmp_path / "second"
+    write_game_fixture(replacement, "md", "second")
+    callback_errors: list[BaseException] = []
+    monkeypatch.setattr(sys, "excepthook", lambda kind, error, stack: callback_errors.append(error))
+
+    controller.load_game(replacement, "md")
+
+    assert callback_errors == []
     assert navigator.entries.count() == 0
     assert "not available" in navigator.preview.toPlainText().lower()
     assert not navigator.jump.isEnabled()

@@ -38,7 +38,7 @@
             "label": "Run",
             "type": "process",
             "command": "${workspaceFolder}/.venv/Scripts/python.exe",
-            "args": ["${workspaceFolder}/pu6e.py"],
+            "args": ["${workspaceFolder}/src/pu6e.py"],
             "dependsOn": "Setup (Windows)",
             "problemMatcher": []
         },

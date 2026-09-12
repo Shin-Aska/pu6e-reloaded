@@ -3,14 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from game_fixtures import write_game_fixture
 from PySide6.QtCore import QEvent, QPointF, Qt
 from PySide6.QtGui import QMouseEvent
 from PySide6.QtWidgets import QApplication
 
-import mapedit_gl as renderer
-from test_core import write_game_fixture
-from U6 import obj
-from pu6e_qt.controller import EditorController
+from ui.app.controller import EditorController
 
 
 @pytest.fixture(scope="session")
@@ -25,8 +23,8 @@ def navigation_controller(tmp_path: Path, navigation_app: QApplication) -> Edito
     controller = EditorController()
     controller.load_game(game_directory, "fp")
     controller.set_position(100, 100, 0)
-    renderer.scale_factor = 1.0
-    renderer.display_objects = 1
+    controller.camera.set_zoom(1.0)
+    controller.render_options.display_objects = True
     return controller
 
 
@@ -52,7 +50,7 @@ def mouse_event(
 def test_middle_drag_pans_the_world_without_editing(
     navigation_controller: EditorController,
 ) -> None:
-    from pu6e_qt.canvas import MapCanvas
+    from ui.app.map.canvas import MapCanvas
 
     canvas = MapCanvas(navigation_controller)
     canvas.timer.stop()
@@ -83,7 +81,7 @@ def test_middle_drag_pans_the_world_without_editing(
 def test_left_drag_on_empty_background_pans_in_inspection_mode(
     navigation_controller: EditorController,
 ) -> None:
-    from pu6e_qt.canvas import MapCanvas
+    from ui.app.map.canvas import MapCanvas
 
     canvas = MapCanvas(navigation_controller)
     canvas.timer.stop()
@@ -114,13 +112,13 @@ def test_left_drag_on_empty_background_pans_in_inspection_mode(
 def test_left_drag_on_an_object_remains_an_editing_gesture(
     navigation_controller: EditorController,
 ) -> None:
-    from pu6e_qt.canvas import MapCanvas
+    from ui.app.map.canvas import MapCanvas
 
     canvas = MapCanvas(navigation_controller)
     canvas.timer.stop()
     x, y, z = canvas._world_at(QPointF(80, 80))
-    current = obj.default_object()
-    obj.add_object_at(current, x, y, z)
+    current = navigation_controller.session.editor.new_object()
+    navigation_controller.session.editor.add_object_at(current, x, y, z)
     original_center = navigation_controller.position
     canvas.mousePressEvent(
         mouse_event(
@@ -148,7 +146,7 @@ def test_left_drag_on_an_object_remains_an_editing_gesture(
 def test_terrain_mode_preserves_background_drag_for_editing(
     navigation_controller: EditorController,
 ) -> None:
-    from pu6e_qt.canvas import MapCanvas
+    from ui.app.map.canvas import MapCanvas
 
     canvas = MapCanvas(navigation_controller)
     canvas.timer.stop()
@@ -184,13 +182,13 @@ def test_map_zoom_stays_between_twenty_five_and_four_hundred_percent(
     navigation_controller: EditorController,
     zoom_scenario: tuple[float, float, float],
 ) -> None:
-    from pu6e_qt.canvas import MapCanvas
+    from ui.app.map.canvas import MapCanvas
 
     initial_scale, factor, expected_scale = zoom_scenario
-    renderer.scale_factor = initial_scale
+    navigation_controller.camera.scale = initial_scale
     canvas = MapCanvas(navigation_controller)
     canvas.timer.stop()
 
     canvas.zoom(factor)
 
-    assert renderer.scale_factor == expected_scale
+    assert navigation_controller.camera.scale == expected_scale

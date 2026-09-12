@@ -1,15 +1,16 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
+from game_fixtures import write_game_fixture
 from PySide6.QtCore import QEvent, QPointF, Qt
 from PySide6.QtGui import QMouseEvent
 from PySide6.QtWidgets import QApplication
 
-from test_core import write_game_fixture
-from U6 import Map, tile
-from pu6e_qt.controller import EditorController
+from game.models.assets import AnimationData, Palette
+from ui.app.controller import EditorController
 
 
 @pytest.fixture(scope="session")
@@ -30,13 +31,12 @@ def minimap_controller(tmp_path: Path, minimap_app: QApplication) -> EditorContr
 def test_world_minimap_renders_surface_and_dungeon_at_fixed_resolution(
     minimap_controller: EditorController,
 ) -> None:
-    from pu6e_qt.minimap import render_world_minimap
+    from ui.app.map.minimap import render_world_minimap
 
-    palette = minimap_controller.palette
-    assert palette is not None
+    state = minimap_controller.session.state
 
-    surface = render_world_minimap(0, palette.pal)
-    dungeon = render_world_minimap(1, palette.pal)
+    surface = render_world_minimap(state, 0)
+    dungeon = render_world_minimap(state, 1)
 
     assert (surface.width(), surface.height()) == (256, 256)
     assert (dungeon.width(), dungeon.height()) == (256, 256)
@@ -45,32 +45,37 @@ def test_world_minimap_renders_surface_and_dungeon_at_fixed_resolution(
 def test_world_minimap_uses_actual_tile_palette_colors(
     minimap_controller: EditorController,
 ) -> None:
-    from pu6e_qt.minimap import render_world_minimap
+    from ui.app.map.minimap import render_world_minimap
 
-    palette = minimap_controller.palette
-    assert palette is not None
+    state = minimap_controller.session.state
 
-    image = render_world_minimap(0, palette.pal)
+    image = render_world_minimap(state, 0)
 
-    assert image.pixelColor(0, 0).getRgb()[:3] == palette.pal[0]
+    assert image.pixelColor(0, 0).getRgb()[:3] == state.assets.palette.colors[0]
 
 
 def test_minimap_resolves_transparent_animated_terrain_to_its_visible_frame(
     minimap_controller: EditorController,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from pu6e_qt.minimap import render_world_minimap
+    from ui.app.map.minimap import render_world_minimap
 
-    palette = minimap_controller.palette
-    assert palette is not None
-    palette.pal[7] = (12, 34, 56)
-    tile.maptiles[0] = bytes((255,)) * 256
-    tile.maptiles[1] = bytes((7,)) * 256
-    monkeypatch.setitem(tile.anim, "numtiles", 1)
-    monkeypatch.setitem(tile.anim, "tiles", (0,))
-    monkeypatch.setitem(tile.anim, "first_frame", (1,))
+    state = minimap_controller.session.state
+    colors = list(state.assets.palette.colors)
+    colors[7] = (12, 34, 56)
+    pixels = list(state.assets.tiles.pixels)
+    pixels[0] = bytes((255,)) * 256
+    pixels[1] = bytes((7,)) * 256
+    state.assets = replace(
+        state.assets,
+        palette=Palette(tuple(colors)),
+        tiles=replace(
+            state.assets.tiles,
+            pixels=tuple(pixels),
+            animations=AnimationData(1, (0,), (1,), (0,), (0,)),
+        ),
+    )
 
-    image = render_world_minimap(0, palette.pal)
+    image = render_world_minimap(state, 0)
 
     assert image.pixelColor(0, 0).getRgb()[:3] == (12, 34, 56)
 
@@ -78,7 +83,7 @@ def test_minimap_resolves_transparent_animated_terrain_to_its_visible_frame(
 def test_minimap_click_navigates_the_surface_world(
     minimap_controller: EditorController,
 ) -> None:
-    from pu6e_qt.minimap import WorldMinimap
+    from ui.app.map.minimap import WorldMinimap
 
     minimap = WorldMinimap(minimap_controller)
     minimap.resize(256, 280)
@@ -104,7 +109,7 @@ def test_minimap_click_navigates_the_surface_world(
 def test_minimap_tracks_controller_position_and_level(
     minimap_controller: EditorController,
 ) -> None:
-    from pu6e_qt.minimap import WorldMinimap
+    from ui.app.map.minimap import WorldMinimap
 
     minimap = WorldMinimap(minimap_controller)
 
@@ -117,11 +122,48 @@ def test_minimap_tracks_controller_position_and_level(
 def test_minimap_refreshes_after_a_terrain_edit(
     minimap_controller: EditorController,
 ) -> None:
-    from pu6e_qt.minimap import WorldMinimap
+    from ui.app.map.minimap import WorldMinimap
 
     minimap = WorldMinimap(minimap_controller)
-    Map.set_maptile_at(1, 0, 0, 0)
+    minimap_controller.session.editor.set_map_tile(1, 0, 0, 0)
 
     minimap_controller.changed.emit(True)
 
     assert not minimap.image.isNull()
+
+
+def test_minimap_reloads_palette_when_controller_loads_another_game(
+    minimap_controller: EditorController, tmp_path: Path,
+) -> None:
+    from ui.app.map.minimap import WorldMinimap
+
+    minimap = WorldMinimap(minimap_controller)
+    original_color = minimap.image.pixelColor(0, 0)
+    directory = tmp_path / "second"
+    write_game_fixture(directory, "fp", "second minimap")
+    (directory / "u6pal").write_bytes(bytes((2,)) * 768)
+
+    minimap_controller.load_game(directory, "fp")
+
+    assert minimap.image.pixelColor(0, 0).getRgb()[:3] == (8, 8, 8)
+    assert minimap.image.pixelColor(0, 0) != original_color
+
+
+def test_minimaps_keep_their_own_session_when_another_controller_loads(
+    minimap_controller: EditorController, tmp_path: Path,
+) -> None:
+    from ui.app.map.minimap import WorldMinimap
+
+    original = WorldMinimap(minimap_controller)
+    original_color = original.image.pixelColor(0, 0)
+    directory = tmp_path / "independent"
+    write_game_fixture(directory, "fp", "independent minimap")
+    (directory / "u6pal").write_bytes(bytes((2,)) * 768)
+    other_controller = EditorController()
+
+    other_controller.load_game(directory, "fp")
+    other = WorldMinimap(other_controller)
+    minimap_controller.changed.emit(False)
+
+    assert original.image.pixelColor(0, 0) == original_color
+    assert other.image.pixelColor(0, 0).getRgb()[:3] == (8, 8, 8)

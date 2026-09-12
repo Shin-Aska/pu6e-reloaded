@@ -4,15 +4,13 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
+from game_fixtures import write_game_fixture
 from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
-from test_core import write_game_fixture
-from U6 import obj
-
 if TYPE_CHECKING:
-    from pu6e_qt.controller import EditorController
+    from ui.app.controller import EditorController
 
 
 @pytest.fixture(scope="session")
@@ -22,7 +20,7 @@ def application() -> QApplication:
 
 @pytest.fixture
 def game(tmp_path: Path, application: QApplication) -> EditorController:
-    from pu6e_qt.controller import EditorController
+    from ui.app.controller import EditorController
 
     game_dir = tmp_path / "fp"
     write_game_fixture(game_dir, "fp", "inspected object")
@@ -32,23 +30,23 @@ def game(tmp_path: Path, application: QApplication) -> EditorController:
 
 
 def test_inspector_population_does_not_dirty_the_world(game: EditorController) -> None:
-    from pu6e_qt.inspectors import ObjectInspector
+    from ui.app.objects.inspector import ObjectInspector
 
-    current = obj.default_object()
+    current = game.session.editor.new_object()
     current.quality = 17
-    obj.clear_changes()
+    game.session.editor.clear_changes()
 
     inspector = ObjectInspector(game)
     inspector.set_object(current)
 
     assert inspector.quality.value() == 17
-    assert not obj.changes
+    assert not game.session.state.dirty_object_blocks
 
 
 def test_inspector_fields_mutate_original_and_bound_status(game: EditorController) -> None:
-    from pu6e_qt.inspectors import ObjectInspector
+    from ui.app.objects.inspector import ObjectInspector
 
-    current = obj.default_object()
+    current = game.session.editor.new_object()
     inspector = ObjectInspector(game)
     inspector.set_object(current)
 
@@ -62,7 +60,7 @@ def test_inspector_fields_mutate_original_and_bound_status(game: EditorControlle
 
 
 def test_inspector_empty_selection_disables_fields(game: EditorController) -> None:
-    from pu6e_qt.inspectors import ObjectInspector
+    from ui.app.objects.inspector import ObjectInspector
 
     inspector = ObjectInspector(game)
 
@@ -72,13 +70,13 @@ def test_inspector_empty_selection_disables_fields(game: EditorController) -> No
 
 
 def test_stack_displays_nested_real_objects_and_selects_topmost(game: EditorController) -> None:
-    from pu6e_qt.inspectors import ObjectStack
+    from ui.app.objects.tree import ObjectStack
 
-    parent = obj.default_object()
-    child = obj.default_object()
+    parent = game.session.editor.new_object()
+    child = game.session.editor.new_object()
     parent.insert(0, child)
-    obj.add_object_at(parent, 0, 0, 0)
-    point = obj.objects_at(0, 0, 0)
+    game.session.editor.add_object_at(parent, 0, 0, 0)
+    point = game.session.editor.objects_at(0, 0, 0)
     assert point is not None
     stack = ObjectStack(game)
 
@@ -90,11 +88,11 @@ def test_stack_displays_nested_real_objects_and_selects_topmost(game: EditorCont
 
 
 def test_stack_copy_paste_after_clones_once_and_consumes_clipboard(game: EditorController) -> None:
-    from pu6e_qt.inspectors import ObjectStack
+    from ui.app.objects.tree import ObjectStack
 
-    original = obj.default_object()
-    obj.add_object_at(original, 0, 0, 0)
-    point = obj.objects_at(0, 0, 0)
+    original = game.session.editor.new_object()
+    game.session.editor.add_object_at(original, 0, 0, 0)
+    point = game.session.editor.objects_at(0, 0, 0)
     assert point is not None
     stack = ObjectStack(game)
     stack.set_point(point, 0, 0, 0)
@@ -109,13 +107,13 @@ def test_stack_copy_paste_after_clones_once_and_consumes_clipboard(game: EditorC
 
 
 def test_stack_cut_and_paste_into_preserves_identity(game: EditorController) -> None:
-    from pu6e_qt.inspectors import ObjectStack
+    from ui.app.objects.tree import ObjectStack
 
-    container = obj.default_object()
-    moving = obj.default_object()
-    obj.add_object_at(container, 0, 0, 0)
-    obj.add_object_at(moving, 0, 0, 0)
-    point = obj.objects_at(0, 0, 0)
+    container = game.session.editor.new_object()
+    moving = game.session.editor.new_object()
+    game.session.editor.add_object_at(container, 0, 0, 0)
+    game.session.editor.add_object_at(moving, 0, 0, 0)
+    point = game.session.editor.objects_at(0, 0, 0)
     assert point is not None
     stack = ObjectStack(game)
     stack.set_point(point, 0, 0, 0)
@@ -130,41 +128,41 @@ def test_stack_cut_and_paste_into_preserves_identity(game: EditorController) -> 
 
 
 def test_stack_move_rejects_descendant_cycle(game: EditorController) -> None:
-    from pu6e_qt.inspectors import ObjectStack
+    from ui.app.objects.tree import ObjectStack
 
-    parent = obj.default_object()
-    child = obj.default_object()
+    parent = game.session.editor.new_object()
+    child = game.session.editor.new_object()
     parent.insert(0, child)
-    obj.add_object_at(parent, 0, 0, 0)
-    point = obj.objects_at(0, 0, 0)
+    game.session.editor.add_object_at(parent, 0, 0, 0)
+    point = game.session.editor.objects_at(0, 0, 0)
     assert point is not None
     stack = ObjectStack(game)
     stack.set_point(point, 0, 0, 0)
-    obj.clear_changes()
+    game.session.editor.clear_changes()
 
     moved = stack.move_object(parent, child)
 
     assert moved is False
     assert list(point) == [parent]
     assert parent.contains == [child]
-    assert not obj.changes
+    assert not game.session.state.dirty_object_blocks
 
 
 def test_stack_empty_location_does_not_create_or_dirty_point(game: EditorController) -> None:
-    from pu6e_qt.inspectors import ObjectStack
+    from ui.app.objects.tree import ObjectStack
 
     stack = ObjectStack(game)
-    obj.clear_changes()
+    game.session.editor.clear_changes()
 
     stack.set_point(None, 0x134, 0x16C, 0)
 
     assert stack.tree.topLevelItemCount() == 0
     assert stack.position.text() == "Position: 134, 16c, 0"
-    assert not obj.changes
+    assert not game.session.state.dirty_object_blocks
 
 
 def test_stack_can_create_and_paste_into_an_empty_location(game: EditorController) -> None:
-    from pu6e_qt.inspectors import ObjectStack
+    from ui.app.objects.tree import ObjectStack
 
     stack = ObjectStack(game)
     stack.set_point(None, 0x134, 0x16C, 0)
@@ -172,7 +170,7 @@ def test_stack_can_create_and_paste_into_an_empty_location(game: EditorControlle
     stack.create_default()
     stack.paste_after()
 
-    point = obj.objects_at(0x134, 0x16C, 0)
+    point = game.session.editor.objects_at(0x134, 0x16C, 0)
     assert point is not None
     assert len(point) == 1
     assert stack.tree.topLevelItemCount() == 1
@@ -181,11 +179,11 @@ def test_stack_can_create_and_paste_into_an_empty_location(game: EditorControlle
 
 
 def test_stack_native_keyboard_copy_paste_drives_game_objects(game: EditorController) -> None:
-    from pu6e_qt.inspectors import ObjectStack
+    from ui.app.objects.tree import ObjectStack
 
-    original = obj.default_object()
-    obj.add_object_at(original, 0, 0, 0)
-    point = obj.objects_at(0, 0, 0)
+    original = game.session.editor.new_object()
+    game.session.editor.add_object_at(original, 0, 0, 0)
+    point = game.session.editor.objects_at(0, 0, 0)
     assert point is not None
     stack = ObjectStack(game)
     stack.set_point(point, 0, 0, 0)
@@ -200,3 +198,35 @@ def test_stack_native_keyboard_copy_paste_drives_game_objects(game: EditorContro
     assert point[0] is original
     assert point[1] is not original
     assert stack.clipboard is None
+
+
+def test_inspector_and_stack_clear_old_objects_when_session_changes(
+    game: EditorController, tmp_path: Path,
+) -> None:
+    from ui.app.objects.inspector import ObjectInspector
+    from ui.app.objects.tree import ObjectStack
+
+    previous_session = game.session
+    original = previous_session.editor.new_object()
+    previous_session.editor.add_object_at(original, 0, 0, 0)
+    stack = ObjectStack(game)
+    stack.set_point(previous_session.editor.objects_at(0, 0, 0), 0, 0, 0)
+    stack.set_default_obj(original)
+    stack.copy_selected()
+    inspector = ObjectInspector(game)
+    inspector.set_object(original)
+    directory = tmp_path / "replacement"
+    write_game_fixture(directory, "fp", "replacement object")
+
+    game.load_game(directory, "fp")
+
+    assert inspector.current_object is None
+    assert not inspector.quality.isEnabled()
+    assert stack.point is None
+    assert stack.clipboard is None
+    assert stack.default_object is None
+    assert stack.tree.topLevelItemCount() == 0
+    previous_point = previous_session.editor.objects_at(0, 0, 0)
+    assert previous_point is not None
+    assert previous_point[0] is original
+    assert not game.dirty

@@ -45,11 +45,11 @@ try {
     & $uvExecutable pip check
     if ($LASTEXITCODE -ne 0) { throw "The Python environment has incompatible dependencies." }
     & (Join-Path $projectDirectory "packaging/prepare-windows-mesa.ps1") | Out-Null
-    & (Join-Path $projectDirectory ".venv/Scripts/python.exe") -c "import numpy; import PySide6.QtWidgets; import OpenGL.GL"
+    & (Join-Path $projectDirectory ".venv/Scripts/python.exe") -c "import numpy; import PySide6.QtWidgets; import OpenGL.GL; import pu6e; import game; import ui"
     if ($LASTEXITCODE -ne 0) { throw "The installed application dependencies could not load." }
 } finally {
     Pop-Location
 }
 
-Write-Host "Setup complete. Start the editor with: .\.venv\Scripts\python.exe .\pu6e.py"
+Write-Host "Setup complete. Start the editor with: .\.venv\Scripts\pu6e.exe"
 Write-Host "In VS Code, use F5 to debug or Ctrl+Shift+B to compile."

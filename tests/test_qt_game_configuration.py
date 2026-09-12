@@ -6,10 +6,11 @@ from pathlib import Path
 import pytest
 from PySide6.QtWidgets import QApplication
 
-from pu6e_qt import game_profiles
-from pu6e_qt.game_profiles import GameProfileStore
-from test_core import write_game_fixture
-from U6 import pal
+from ui.profile import validation as game_profiles
+from ui.profile.store import GameProfileStore
+from ui.settings.store import SettingsStore
+from game_fixtures import write_game_fixture
+from game.format.resources import palette_filename
 
 GAMES = ("fp", "md", "se")
 
@@ -20,9 +21,9 @@ def launcher_app() -> QApplication:
 
 
 def _dialog(tmp_path: Path, game: str):
-    from pu6e_qt.launcher_dialog import GameConfigurationDialog
+    from ui.profile.dialog import GameConfigurationDialog
 
-    store = GameProfileStore(tmp_path / "pu6e.conf")
+    store = GameProfileStore(SettingsStore(tmp_path / "pu6e.conf"))
     return store, GameConfigurationDialog(store, game)
 
 
@@ -121,7 +122,7 @@ def test_configuration_dialog_explains_missing_palette_or_core_data(
 ) -> None:
     # Given: a complete game installation missing one required asset.
     directory = _installation(tmp_path, game)
-    missing = pal.paths[game] if resource == "palette" else "tileflag"
+    missing = palette_filename(game) if resource == "palette" else "tileflag"
     (directory / missing).unlink()
     _store, dialog = _dialog(tmp_path, game)
 
@@ -174,7 +175,7 @@ def test_configuration_dialog_accepts_case_variants_and_explains_permission_fail
 ) -> None:
     # Given: a case-mismatched installation and a complete readable installation.
     case_directory = _installation(tmp_path, game, f"{game}-case")
-    expected_name = pal.paths[game]
+    expected_name = palette_filename(game)
     actual_name = expected_name.upper()
     (case_directory / expected_name).rename(case_directory / actual_name)
     readable_directory = _installation(tmp_path, game, f"{game}-readable")

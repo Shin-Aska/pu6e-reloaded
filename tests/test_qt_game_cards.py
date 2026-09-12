@@ -5,13 +5,13 @@ from pathlib import Path
 import pytest
 from PySide6.QtWidgets import QApplication
 
-from pu6e_qt.game_profiles import (
+from ui.profile.models import (
     GAMES,
     GameProfile,
     GameProfileIssue,
     GameProfileIssueKind,
 )
-from pu6e_qt.launcher_cards import GameCard
+from ui.launcher.cards import GameCard
 
 
 @pytest.fixture(scope="session")

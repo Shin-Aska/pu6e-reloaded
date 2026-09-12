@@ -26,14 +26,18 @@ uv run --no-sync pyinstaller \
     --onedir \
     --name pu6e-reloaded \
     --collect-submodules OpenGL.platform \
+    --collect-submodules game \
+    --collect-submodules ui.rendering \
+    --hidden-import OpenGL.GL \
     --copy-metadata PyOpenGL \
+    --paths "$project_directory/src" \
     --add-data "$project_directory/LICENSE:." \
     --add-data "$project_directory/NOTICE.md:." \
     --add-data "$project_directory/THIRD_PARTY_NOTICES.md:." \
     --specpath "$build_directory" \
     --workpath "$build_directory/work" \
     --distpath "$portable_parent" \
-    pu6e.py
+    src/pu6e.py
 
 install -m644 LICENSE NOTICE.md THIRD_PARTY_NOTICES.md "$portable_directory/"
 

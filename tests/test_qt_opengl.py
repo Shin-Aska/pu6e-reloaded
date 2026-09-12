@@ -25,14 +25,14 @@ class FakeOpenGLContext:
 def test_rejects_opengl_contexts_without_fixed_function_support(
     embedded: bool, core_profile: bool, reason: str
 ) -> None:
-    from pu6e_qt.canvas import OpenGLCompatibilityError, validate_opengl_context
+    from ui.runtime.surface import OpenGLCompatibilityError, validate_opengl_context
 
     with pytest.raises(OpenGLCompatibilityError, match=reason):
         validate_opengl_context(FakeOpenGLContext(embedded=embedded, core_profile=core_profile))
 
 
 def test_rejects_a_missing_opengl_context() -> None:
-    from pu6e_qt.canvas import OpenGLCompatibilityError, validate_opengl_context
+    from ui.runtime.surface import OpenGLCompatibilityError, validate_opengl_context
 
     with pytest.raises(OpenGLCompatibilityError, match="did not create"):
         validate_opengl_context(None)

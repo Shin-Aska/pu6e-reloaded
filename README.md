@@ -10,10 +10,10 @@ distribution remain available at
 that editor forward to Python 3.14, Qt 6, and current OpenGL tooling while
 preserving its original **GNU GPL version 2 or later** license.
 
-![pu6e Reloaded Qt world editor](docs/main.png)
+![pu6e Reloaded Qt world editor](src/docs/main.png)
 
 New to the editor? Start with the **[complete illustrated user
-manual](docs/MANUAL.md)**, which walks through an unconfigured first launch,
+manual](src/docs/MANUAL.md)**, which walks through an unconfigured first launch,
 Ultima VI setup, world editing, and safe saving.
 
 ## Supported games
@@ -41,6 +41,8 @@ include or grant permission to redistribute copyrighted game assets.
   zoomed-out rendering.
 - Replaced the obsolete SWIG LZW extension with a memory-safe, pure-Python
   decoder.
+- Separated game models, binary formats, and editing services into `game`, with
+  independent world sessions and `ui`-owned cameras and rendering resources.
 - Removed obsolete wxPython interfaces, native-extension toolchains, and
   Python 2-era packaging scripts from the maintained source tree.
 - Added automated coverage for supported games, game data, launcher behavior,
@@ -96,14 +98,14 @@ cd pu6e-reloaded
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1
-.\.venv\Scripts\python.exe .\pu6e.py
+.\.venv\Scripts\pu6e.exe
 ```
 
 **Linux or macOS**, in a terminal:
 
 ```sh
 bash setup.sh
-.venv/bin/python pu6e.py
+.venv/bin/pu6e
 ```
 
 Both scripts create `.venv` with Python 3.14 and install the locked application,
@@ -132,7 +134,7 @@ After setup, tests can be run directly without activating the environment:
 
 On Windows, use `.venv\Scripts\python.exe -m pytest -q` instead.
 
-![Unconfigured pu6e Reloaded game launcher](docs/images/manual/01-first-launch-unconfigured.png)
+![Unconfigured pu6e Reloaded game launcher](src/docs/images/manual/01-first-launch-unconfigured.png)
 
 Use the cog beside Ultima VI, Martian Dreams, or The Savage Empire to choose
 that game's working directory. The launcher checks the original game files and
@@ -145,11 +147,20 @@ copyrighted and are not included.
 For a screenshot-by-screenshot walkthrough from the unconfigured launcher
 through Ultima VI setup, navigation, object and terrain editing, quest
 browsing, safe saving, keyboard shortcuts, and troubleshooting, see the
-**[complete illustrated user manual](docs/MANUAL.md)**. The complete
-[documentation index](docs/README.md) also includes original manuals and
+**[complete illustrated user manual](src/docs/MANUAL.md)**. The complete
+[documentation index](src/docs/README.md) also includes original manuals and
 Ultima VI file-format research.
 
 ## Development
+
+The [architecture guide](src/docs/ARCHITECTURE.md) describes the game and UI
+package boundaries, world-session ownership, and the load/edit/save flow.
+
+Python source lives in `src/game`, `src/ui`, and `src/pu6e.py`. Setup installs
+the project in editable mode, so source changes take effect without reinstalling.
+Tests run against that installed package; they do not add `src` to `PYTHONPATH`.
+Documentation lives alongside the source in `src/docs`; it is excluded from
+Python package discovery. Tests and build tooling remain at the repository root.
 
 Run the setup script above first. If `uv` was installed locally, use
 `build/tools/uv` (`build\tools\uv.exe` on Windows) in place of `uv` below,
@@ -218,9 +229,9 @@ configuration, then add the existing `.venv` interpreter in **Settings > Python 
 Interpreter** if PyCharm has not detected it. Select **Run editor (Windows)** or
 **Run editor (Linux)** in the run selector and choose **Run** or **Debug**:
 
-- **Run editor (Windows)** launches `pu6e.py` directly with
+- **Run editor (Windows)** launches `src/pu6e.py` directly with
   `.venv/Scripts/python.exe`.
-- **Run editor (Linux)** launches `pu6e.py` directly with
+- **Run editor (Linux)** launches `src/pu6e.py` directly with
   `.venv/bin/python`. Use this configuration in PyCharm running on Linux.
 
 Both entries use the project root as the working directory and emulate a
@@ -243,9 +254,9 @@ debugging** in the [Python debugger settings](https://www.jetbrains.com/help/pyc
 The original documentation and technical references are retained for historical
 reference.
 The original 2003 README, installation instructions, and copyright notice are
-preserved verbatim under [`docs/history/`](docs/history/). Original game-data
+preserved verbatim under [`src/docs/history/`](src/docs/history/). Original game-data
 research and technical references are preserved under
-[`docs/reference/`](docs/reference/).
+[`src/docs/reference/`](src/docs/reference/).
 
 ## Credits and provenance
 
@@ -265,7 +276,7 @@ pu6e Reloaded is licensed under the **GNU General Public License, version 2 or
 
 The complete GPLv2 text is provided in [`LICENSE`](LICENSE). Jim Ursetto's
 original copyright and license notice is preserved in
-[`docs/history/NOTICE-0.6.0.txt`](docs/history/NOTICE-0.6.0.txt).
+[`src/docs/history/NOTICE-0.6.0.txt`](src/docs/history/NOTICE-0.6.0.txt).
 
 Qt/PySide6, NumPy, PyOpenGL, and their bundled components retain their own
 licenses. See [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) for

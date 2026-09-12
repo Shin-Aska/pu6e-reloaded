@@ -2,8 +2,8 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QPalette
 from PySide6.QtWidgets import QApplication, QLineEdit
 
-from pu6e_qt.primitives import icon_button, section_header
-from pu6e_qt.theme import THEME, apply_theme
+from ui.shared.primitives import icon_button, section_header
+from ui.shared.theme import THEME, apply_theme
 
 
 def application() -> QApplication:

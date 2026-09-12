@@ -1,0 +1,2 @@
+include tests/game_fixtures.py
+include src/docs/ARCHITECTURE.md

@@ -6,9 +6,9 @@ from pathlib import Path
 import pytest
 from PySide6.QtWidgets import QApplication, QWidget
 
-from test_core import write_game_fixture
-from U6 import Config
-from pu6e_qt.renderer_settings import RendererMode, RendererRuntime
+from game_fixtures import write_game_fixture
+from ui.runtime.renderer import RendererMode, RendererRuntime
+from ui.settings.store import SettingsStore
 
 
 @pytest.fixture(scope="session")
@@ -18,11 +18,11 @@ def launcher_app() -> QApplication:
 
 @pytest.mark.parametrize("game", ("fp", "md", "se"))
 def test_game_profiles_recognize_complete_installations(tmp_path: Path, game: str) -> None:
-    from pu6e_qt.game_profiles import GameProfileStore
+    from ui.profile.store import GameProfileStore
 
     game_directory = tmp_path / game
     write_game_fixture(game_directory, game, game)
-    store = GameProfileStore(tmp_path / "pu6e.conf")
+    store = GameProfileStore(SettingsStore(tmp_path / "pu6e.conf"))
 
     store.set_directory(game, game_directory)
 
@@ -33,11 +33,11 @@ def test_game_profiles_recognize_complete_installations(tmp_path: Path, game: st
 
 
 def test_game_profiles_reject_an_installation_for_a_different_game(tmp_path: Path) -> None:
-    from pu6e_qt.game_profiles import GameProfileStore
+    from ui.profile.store import GameProfileStore
 
     ultima_directory = tmp_path / "ultima"
     write_game_fixture(ultima_directory, "fp", "ultima")
-    store = GameProfileStore(tmp_path / "pu6e.conf")
+    store = GameProfileStore(SettingsStore(tmp_path / "pu6e.conf"))
 
     store.set_directory("md", ultima_directory)
 
@@ -48,12 +48,12 @@ def test_game_profiles_reject_an_installation_for_a_different_game(tmp_path: Pat
 
 
 def test_game_profiles_detect_missing_required_object_blocks(tmp_path: Path) -> None:
-    from pu6e_qt.game_profiles import GameProfileStore
+    from ui.profile.store import GameProfileStore
 
     game_directory = tmp_path / "incomplete"
     write_game_fixture(game_directory, "fp", "incomplete")
     (game_directory / "savegame" / "objblkhh").unlink()
-    store = GameProfileStore(tmp_path / "pu6e.conf")
+    store = GameProfileStore(SettingsStore(tmp_path / "pu6e.conf"))
 
     store.set_directory("fp", game_directory)
 
@@ -65,7 +65,7 @@ def test_game_profiles_detect_missing_required_object_blocks(tmp_path: Path) -> 
 def test_game_profiles_import_legacy_configuration_and_preserve_display_settings(
     tmp_path: Path,
 ) -> None:
-    from pu6e_qt.game_profiles import GameProfileStore
+    from ui.profile.store import GameProfileStore
 
     ultima_directory = tmp_path / "ultima"
     mars_directory = tmp_path / "mars"
@@ -80,7 +80,7 @@ def test_game_profiles_import_legacy_configuration_and_preserve_display_settings
         "height = 720\n"
         "zoom = 1.5\n"
     )
-    store = GameProfileStore(configuration_path)
+    store = GameProfileStore(SettingsStore(configuration_path))
     assert store.profile("fp").ready
     store.set_directory("md", mars_directory)
 
@@ -93,22 +93,29 @@ def test_game_profiles_import_legacy_configuration_and_preserve_display_settings
     assert saved.getint("pu6e", "width") == 1280
     assert saved.getint("pu6e", "height") == 720
     assert saved.getfloat("pu6e", "zoom") == 1.5
-    assert GameProfileStore(configuration_path).profile("fp").ready
+    assert GameProfileStore(SettingsStore(configuration_path)).profile("fp").ready
 
 
 def test_launcher_only_enables_the_stage_launch_action_for_ready_games(
     tmp_path: Path,
     launcher_app: QApplication,
 ) -> None:
-    from pu6e_qt.game_profiles import GameProfileStore
-    from pu6e_qt.launcher import LauncherWindow
+    from ui.profile.store import GameProfileStore
+    from ui.launcher.window import LauncherWindow
 
     game_directory = tmp_path / "ultima"
     write_game_fixture(game_directory, "fp", "ultima")
-    store = GameProfileStore(tmp_path / "pu6e.conf")
+    settings = SettingsStore(tmp_path / "pu6e.conf")
+    store = GameProfileStore(settings)
     store.set_directory("fp", game_directory)
 
-    launcher = LauncherWindow(store, RendererRuntime(RendererMode.OPENGL))
+    launcher = LauncherWindow(
+        store,
+        settings,
+        RendererRuntime(RendererMode.OPENGL),
+        launch_editor=lambda _path: pytest.fail("unexpected editor launch"),
+        restart_application=lambda: True,
+    )
 
     assert launcher.stage.launch_button.isEnabled()
     assert launcher.cards["fp"].property("launcherReady") is True
@@ -122,17 +129,24 @@ def test_launcher_explains_missing_saved_world_files_with_hoverable_warning(
     tmp_path: Path,
     launcher_app: QApplication,
 ) -> None:
-    from pu6e_qt.game_profiles import GameProfileStore
-    from pu6e_qt.launcher import LauncherWindow
+    from ui.profile.store import GameProfileStore
+    from ui.launcher.window import LauncherWindow
 
     game_directory = tmp_path / "mars"
     write_game_fixture(game_directory, "md", "mars")
     (game_directory / "savegame" / "objlist").unlink()
     (game_directory / "savegame" / "objblkaa").unlink()
-    store = GameProfileStore(tmp_path / "pu6e.conf")
+    settings = SettingsStore(tmp_path / "pu6e.conf")
+    store = GameProfileStore(settings)
     store.set_directory("md", game_directory)
 
-    launcher = LauncherWindow(store, RendererRuntime(RendererMode.OPENGL))
+    launcher = LauncherWindow(
+        store,
+        settings,
+        RendererRuntime(RendererMode.OPENGL),
+        launch_editor=lambda _path: pytest.fail("unexpected editor launch"),
+        restart_application=lambda: True,
+    )
 
     card = launcher.cards["md"]
     assert not card.availability_button.isHidden()
@@ -148,12 +162,12 @@ def test_game_configurator_validates_directory_before_saving(
     tmp_path: Path,
     launcher_app: QApplication,
 ) -> None:
-    from pu6e_qt.game_profiles import GameProfileStore
-    from pu6e_qt.launcher_dialog import GameConfigurationDialog
+    from ui.profile.store import GameProfileStore
+    from ui.profile.dialog import GameConfigurationDialog
 
     game_directory = tmp_path / "mars"
     write_game_fixture(game_directory, "md", "mars")
-    store = GameProfileStore(tmp_path / "pu6e.conf")
+    store = GameProfileStore(SettingsStore(tmp_path / "pu6e.conf"))
     dialog = GameConfigurationDialog(store, "md")
     assert not dialog.save_button.isEnabled()
 
@@ -169,9 +183,10 @@ def test_launcher_opens_selected_game_in_editor(
     monkeypatch: pytest.MonkeyPatch,
     launcher_app: QApplication,
 ) -> None:
-    from pu6e_qt.controller import EditorController
-    from pu6e_qt.game_profiles import GameProfileStore
-    import pu6e_qt.launcher as launcher_module
+    from ui.app.controller import EditorController
+    from ui.app.bootstrap import initialize_editor
+    from ui.profile.store import GameProfileStore
+    import ui.launcher.window as launcher_module
 
     class StubEditor(QWidget):
         def __init__(
@@ -185,19 +200,23 @@ def test_launcher_opens_selected_game_in_editor(
 
     game_directory = tmp_path / "savage"
     write_game_fixture(game_directory, "se", "savage")
-    store = GameProfileStore(tmp_path / "pu6e.conf")
+    settings = SettingsStore(tmp_path / "pu6e.conf")
+    store = GameProfileStore(settings)
     store.set_directory("se", game_directory)
     monkeypatch.setattr(launcher_module, "MainWindow", StubEditor)
     launcher = launcher_module.LauncherWindow(
         store,
+        settings,
         RendererRuntime(RendererMode.OPENGL),
+        launch_editor=initialize_editor,
+        restart_application=lambda: True,
     )
 
     launcher.cards["se"].click()
     launcher.stage.launch_button.click()
 
-    assert Config.gametype == "se"
     assert launcher.editor_window is not None
+    assert launcher.editor_window.controller.session.state.game_type == "se"
     assert launcher.editor_window.controller.position == (0x134, 0x16C, 0)
     assert launcher.editor_window.isVisible()
     launcher.editor_window.close()
