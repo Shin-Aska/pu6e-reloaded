@@ -23,7 +23,12 @@ a = Analysis(
         (str(project_directory / name), ".")
         for name in ("LICENSE", "NOTICE.md", "THIRD_PARTY_NOTICES.md")
     ] + copy_metadata("PyOpenGL"),
-    hiddenimports=collect_submodules("OpenGL.platform") + ["pu6e_qt.windows_opengl"],
+    hiddenimports=(
+        collect_submodules("OpenGL.platform")
+        + collect_submodules("pu6e_core")
+        + collect_submodules("pu6e_qt.rendering")
+        + ["OpenGL.GL", "pu6e_qt.windows_opengl"]
+    ),
 )
 
 # Analysis reclassifies DLL inputs as binaries and searches their dependencies.

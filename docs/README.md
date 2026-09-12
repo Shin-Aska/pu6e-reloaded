@@ -8,6 +8,12 @@
 - [Project overview](../README.md): Supported games, modernization work,
   development setup, credits, and licensing.
 
+## Developing pu6e Reloaded
+
+- [Architecture guide](ARCHITECTURE.md): Game models, binary formats, editing
+  services, world sessions, Qt presentation, and OpenGL resource ownership.
+- [Desktop design](../DESIGN.md): Workbench layout and interaction conventions.
+
 ## Original project history
 
 The original pu6e 0.6.0 documents are preserved without modification:

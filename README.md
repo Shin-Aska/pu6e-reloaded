@@ -41,6 +41,8 @@ include or grant permission to redistribute copyrighted game assets.
   zoomed-out rendering.
 - Replaced the obsolete SWIG LZW extension with a memory-safe, pure-Python
   decoder.
+- Separated game models, binary formats, and editing services into `pu6e_core`,
+  with independent world sessions and Qt-owned cameras and rendering resources.
 - Removed obsolete wxPython interfaces, native-extension toolchains, and
   Python 2-era packaging scripts from the maintained source tree.
 - Added automated coverage for supported games, game data, launcher behavior,
@@ -150,6 +152,9 @@ browsing, safe saving, keyboard shortcuts, and troubleshooting, see the
 Ultima VI file-format research.
 
 ## Development
+
+The [architecture guide](docs/ARCHITECTURE.md) describes the core and Qt
+package boundaries, world-session ownership, and the load/edit/save flow.
 
 Run the setup script above first. If `uv` was installed locally, use
 `build/tools/uv` (`build\tools\uv.exe` on Windows) in place of `uv` below,

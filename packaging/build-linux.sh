@@ -26,6 +26,9 @@ uv run --no-sync pyinstaller \
     --onedir \
     --name pu6e-reloaded \
     --collect-submodules OpenGL.platform \
+    --collect-submodules pu6e_core \
+    --collect-submodules pu6e_qt.rendering \
+    --hidden-import OpenGL.GL \
     --copy-metadata PyOpenGL \
     --add-data "$project_directory/LICENSE:." \
     --add-data "$project_directory/NOTICE.md:." \
