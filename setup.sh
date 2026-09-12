@@ -152,6 +152,6 @@ fi
 "$uv_command" sync --locked --python 3.14 --group packaging
 "$uv_command" pip check --python "$project_directory/.venv/bin/python"
 "$uv_command" run --no-sync python -c \
-    'import numpy; import PySide6.QtCore; import PySide6.QtWidgets; import OpenGL.GL; print("Python, NumPy, Qt Widgets, and PyOpenGL imports verified.")'
+    'import numpy; import PySide6.QtCore; import PySide6.QtWidgets; import OpenGL.GL; import pu6e; import game; import ui; print("Application, Python, NumPy, Qt Widgets, and PyOpenGL imports verified.")'
 
 printf '\nSetup complete. Run the editor with:\n  "%s/.venv/bin/pu6e"\n' "$project_directory"
