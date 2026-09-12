@@ -14,7 +14,6 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-import mapedit_gl as renderer
 from pu6e_qt.application import initialize_editor
 from pu6e_qt.application_restart import offer_renderer_restart, restart_application
 from pu6e_qt.game_profiles import GAMES, GameProfile, GameProfileStore
@@ -187,8 +186,8 @@ class LauncherWindow(QWidget):
 
         window = MainWindow(controller, self.renderer_runtime)
         window.resize(
-            max(renderer.screen_width, _MINIMUM_EDITOR_SIZE[0]),
-            max(renderer.screen_height, _MINIMUM_EDITOR_SIZE[1]),
+            max(controller.camera.width, _MINIMUM_EDITOR_SIZE[0]),
+            max(controller.camera.height, _MINIMUM_EDITOR_SIZE[1]),
         )
         self.editor_window = window
         window.installEventFilter(self)

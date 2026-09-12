@@ -6,10 +6,10 @@ from PySide6.QtCore import QSignalBlocker, QSize, Qt
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import QComboBox, QDialog, QMessageBox, QToolBar
 
-import mapedit_gl as render
 from pu6e_qt.canvas import MAXIMUM_ZOOM, MINIMUM_ZOOM
 from pu6e_qt.dialogs import GoToDialog
 from pu6e_qt.icons import action_icon
+from pu6e_qt.world_levels import WORLD_LEVELS
 
 if TYPE_CHECKING:
     from pu6e_qt.main_window import MainWindow
@@ -105,7 +105,7 @@ class WorkbenchActions:
         self.zoom_selector.setToolTip("Choose the world map zoom percentage")
         self.zoom_selector.addItems(("25%", "50%", "100%", "200%", "400%"))
         self.zoom_selector.setMinimumWidth(84)
-        self._sync_zoom(render.scale_factor)
+        self._sync_zoom(self.window.controller.camera.scale)
         self.zoom_selector.currentTextChanged.connect(self._apply_zoom)
         self.window.canvas.zoom_changed.connect(self._sync_zoom)
         self.toolbar.addWidget(self.zoom_selector)
@@ -128,13 +128,12 @@ class WorkbenchActions:
         self.level_selector = QComboBox(self.toolbar)
         self.level_selector.setObjectName("world-level-selector")
         self.level_selector.setAccessibleName("World level")
-        self.level_selector.setToolTip("Jump directly to the surface or an underworld level")
-        self.level_selector.addItem("Surface")
-        for level in range(1, 6):
-            self.level_selector.addItem(f"Underworld {level}")
-        self.level_selector.setCurrentIndex(self.window.controller.position[2])
-        self.level_selector.currentIndexChanged.connect(self.window.controller.change_level)
+        self.level_selector.setToolTip("Jump directly to a world map")
+        self.level_selector.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
+        self._refresh_levels()
+        self.level_selector.currentIndexChanged.connect(self._apply_level)
         self.window.controller.position_changed.connect(self._sync_level)
+        self.window.controller.session_changed.connect(self._refresh_levels)
         self.toolbar.addWidget(self.level_selector)
 
         ascend = QAction(action_icon("ascend"), "Ascend one level", self.window)
@@ -157,7 +156,7 @@ class WorkbenchActions:
             action = QAction(label, self.window)
             action.setObjectName(f"toggle-{attribute}")
             action.setCheckable(True)
-            action.setChecked(bool(getattr(render, attribute)))
+            action.setChecked(bool(getattr(self.window.controller.render_options, attribute)))
             action.setShortcut(QKeySequence(shortcut))
             action.toggled.connect(
                 lambda checked, name=attribute: self._toggle_overlay(name, checked)
@@ -220,12 +219,32 @@ class WorkbenchActions:
 
     def _apply_zoom(self, label: str) -> None:
         target = float(label.removesuffix("%")) / 100.0
-        self.window.canvas.zoom(target / render.scale_factor)
+        self.window.canvas.zoom(target / self.window.controller.camera.scale)
 
     def _sync_level(self, x: int, y: int, z: int) -> None:
         blocker = QSignalBlocker(self.level_selector)
-        self.level_selector.setCurrentIndex(z)
+        self.level_selector.setCurrentIndex(self.level_selector.findData(z))
         del blocker
+
+    def _refresh_levels(self) -> None:
+        controller = self.window.controller
+        blocker = QSignalBlocker(self.level_selector)
+        self.level_selector.clear()
+        for level in WORLD_LEVELS[controller.session.state.game_type]:
+            self.level_selector.addItem(level.label, level.index)
+            self.level_selector.setItemData(
+                self.level_selector.count() - 1,
+                f"{level.label} · Map slot {level.index}",
+                Qt.ItemDataRole.ToolTipRole,
+            )
+        self.level_selector.setCurrentIndex(self.level_selector.findData(controller.position[2]))
+        self.level_selector.setMinimumWidth(self.level_selector.sizeHint().width())
+        del blocker
+
+    def _apply_level(self, index: int) -> None:
+        level = self.level_selector.itemData(index)
+        if isinstance(level, int):
+            self.window.controller.change_level(level)
 
     def _change_level(self, delta: int) -> None:
         current = self.window.controller.position[2]
@@ -237,9 +256,9 @@ class WorkbenchActions:
         self.window.docks.quests.search.setFocus()
 
     def _toggle_overlay(self, attribute: str, checked: bool) -> None:
-        setattr(render, attribute, int(checked))
+        setattr(self.window.controller.render_options, attribute, checked)
         if attribute == "display_objects" and not checked:
-            render.fade_objects = 1.0
+            self.window.controller.render_options.fade_objects = 1.0
         self.window.canvas.update()
 
     def _toggle_terrain(self, enabled: bool) -> None:
@@ -247,7 +266,6 @@ class WorkbenchActions:
         self.window.update_tool_status(enabled)
 
     def _toggle_fullscreen(self, enabled: bool) -> None:
-        render.fullscreen = int(enabled)
         if enabled:
             self.window.showFullScreen()
         else:

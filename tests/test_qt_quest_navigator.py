@@ -4,10 +4,9 @@ from pathlib import Path
 from struct import pack
 
 import pytest
+from game_fixtures import encode_lzw_literals, write_game_fixture
 from PySide6.QtWidgets import QApplication
 
-from test_core import encode_lzw_literals, write_game_fixture
-from U6 import NPCs
 from pu6e_qt.controller import EditorController
 
 
@@ -61,8 +60,8 @@ def test_quest_navigator_searches_dialogue_and_jumps_to_npc(
     )
     controller = EditorController()
     controller.load_game(game_directory, "fp")
-    npc = NPCs.npcs[2]
-    npc.type = 1
+    npc = controller.session.state.npcs[2]
+    npc.packed_type = 1
     npc.x, npc.y, npc.z = 0x120, 0x160, 0
     navigator = QuestNavigator(controller)
 
@@ -90,8 +89,8 @@ def test_quest_navigator_activation_cannot_jump_to_an_unavailable_npc(
     controller = EditorController()
     controller.load_game(game_directory, "fp")
     controller.set_position(0x134, 0x16C, 0)
-    npc = NPCs.npcs[2]
-    npc.type = 0
+    npc = controller.session.state.npcs[2]
+    npc.packed_type = 0
     npc.x, npc.y, npc.z = 0x080, 0x090, 7
     navigator = QuestNavigator(controller)
     navigator.entries.setCurrentRow(0)
@@ -117,6 +116,30 @@ def test_quest_navigator_explains_when_conversation_archives_are_unavailable(
     controller.load_game(game_directory, "md")
 
     navigator = QuestNavigator(controller)
+
+    assert navigator.entries.count() == 0
+    assert "not available" in navigator.preview.toPlainText().lower()
+    assert not navigator.jump.isEnabled()
+
+
+def test_quest_navigator_clears_previous_dialogue_when_session_changes(
+    tmp_path: Path, quest_app: QApplication,
+) -> None:
+    from pu6e_qt.quest_navigator import QuestNavigator
+
+    directory = tmp_path / "first"
+    write_game_fixture(directory, "fp", "first")
+    (directory / "converse.a").write_bytes(
+        _conversation_archive(2, "Dupre", "Bring the lens to the shrine.")
+    )
+    controller = EditorController()
+    controller.load_game(directory, "fp")
+    navigator = QuestNavigator(controller)
+    assert navigator.entries.count() == 1
+    replacement = tmp_path / "second"
+    write_game_fixture(replacement, "md", "second")
+
+    controller.load_game(replacement, "md")
 
     assert navigator.entries.count() == 0
     assert "not available" in navigator.preview.toPlainText().lower()

@@ -1,13 +1,13 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
-import re
 from struct import unpack_from
 from typing import Final
 
-from U6 import dospath, lzw
-
+from pu6e_core.formats import lzw
+from pu6e_core.formats.resources import resolve_dos_path
 
 _ARCHIVES: Final = ("converse.a", "converse.b")
 _DIALOGUE_TEXT: Final = re.compile(rb"[\x20-\x7e\r\n]{4,}")
@@ -24,7 +24,7 @@ class Conversation:
 def read_conversations(directory: Path) -> tuple[Conversation, ...]:
     conversations: list[Conversation] = []
     for archive in _ARCHIVES:
-        path = dospath.resolve_dos_path(directory / archive)
+        path = resolve_dos_path(directory / archive)
         if not path.is_file():
             continue
 

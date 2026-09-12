@@ -48,7 +48,7 @@ def create_docks(window: QMainWindow, controller: EditorController) -> EditorDoc
     inspector = ObjectInspector(controller)
     tiles = TileBrowser(controller)
     chunks = ChunkInspector(controller)
-    books = BookViewer()
+    books = BookViewer(controller)
     minimap = WorldMinimap(controller)
     quests = QuestNavigator(controller)
 

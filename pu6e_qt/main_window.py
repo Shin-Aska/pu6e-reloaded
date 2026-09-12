@@ -5,14 +5,11 @@ from typing import Final
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QLabel, QMainWindow, QMessageBox, QSizePolicy
 
-import mapedit_gl as render
-from U6 import Config, Map, obj
 from pu6e_qt.actions import WorkbenchActions
 from pu6e_qt.canvas import MapCanvas
 from pu6e_qt.controller import EditorController
 from pu6e_qt.docks import EditorDocks, create_docks
 from pu6e_qt.renderer_settings import RendererRuntime
-
 
 GAME_NAMES: Final[dict[str, str]] = {
     "fp": "Ultima VI: The False Prophet",
@@ -53,7 +50,7 @@ class MainWindow(QMainWindow):
         status = self.statusBar()
         status.setSizeGripEnabled(False)
 
-        self.game_label = QLabel(GAME_NAMES.get(str(Config.gametype), "Ultima world"))
+        self.game_label = QLabel(GAME_NAMES[self.controller.session.state.game_type])
         self.game_label.setObjectName("game-status")
         self.game_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         status.addWidget(self.game_label, 1)
@@ -78,23 +75,26 @@ class MainWindow(QMainWindow):
         self.controller.changed.connect(self._mark_changed)
         self.controller.saved.connect(self._mark_saved)
         self.controller.terrain_mode_changed.connect(self.update_tool_status)
+        self.controller.session_changed.connect(self._update_session)
         self.canvas.fatal_error.connect(self._show_render_error)
         self.canvas.zoom_changed.connect(self._update_zoom)
         self.canvas.zoom_changed.connect(self.docks.minimap.update)
 
     def _update_position(self, x: int, y: int, z: int) -> None:
         self.location_label.setText(f"X {x:03x}    Y {y:03x}    Z {z}")
-        scale = render.scale_factor if hasattr(render, "scale_factor") else 1.0
-        self._update_zoom(scale)
+        self._update_zoom(self.controller.camera.scale)
+
+    def _update_session(self) -> None:
+        self.game_label.setText(GAME_NAMES[self.controller.session.state.game_type])
 
     def _update_zoom(self, scale: float) -> None:
         self.zoom_label.setText(f"{scale * 100:g}%")
 
     def _select_location(self, x: int, y: int, z: int) -> None:
-        point = obj.objects_at(x, y, z)
+        point = self.controller.session.editor.objects_at(x, y, z)
         self.docks.stack.set_point(point, x, y, z)
         self.docks.chunks.set_mapchunk(x, y, z)
-        self.docks.tiles.select_tile(Map.maptile_at(x, y, z))
+        self.docks.tiles.select_tile(self.controller.session.editor.map_tile_at(x, y, z))
         self.statusBar().showMessage(f"Selected {x:03x}, {y:03x}, level {z}", 3000)
 
     def _mark_changed(self, dirty: bool) -> None:

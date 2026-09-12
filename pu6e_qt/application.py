@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 import configparser
-from dataclasses import dataclass
-from pathlib import Path
 import sys
+from dataclasses import dataclass
+from math import isfinite
+from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
-from U6 import Config
-
-from pu6e_qt.configuration import migrate_legacy_configuration, user_configuration_path
+from pu6e_core.formats.resources import SUPPORTED_GAMES
 from pu6e_qt import renderer_settings
+from pu6e_qt.configuration import migrate_legacy_configuration, user_configuration_path
 
 if TYPE_CHECKING:
     from pu6e_qt.controller import EditorController
@@ -79,39 +79,43 @@ def read_configuration(config_path: Path) -> RuntimeConfiguration:
         raise ConfigurationFileError(config_path)
 
     try:
-        Config.read(str(config_path))
-    except (configparser.Error, ValueError) as error:
+        parser = configparser.ConfigParser()
+        parser.read(config_path)
+        section = parser["pu6e"]
+        game_directory = Path(section["gamedir"])
+        game_type = section["gametype"]
+        width = parser.getint("pu6e", "width")
+        height = parser.getint("pu6e", "height")
+        scale = parser.getfloat("pu6e", "zoom")
+    except (configparser.Error, ValueError, KeyError) as error:
         raise MalformedConfigurationError(config_path, str(error)) from error
-    game_directory = Path(Config.gamedir)
     if not game_directory.is_dir():
         raise GameDirectoryError(game_directory)
-    if Config.gametype not in Config.paths:
-        raise GameTypeError(Config.gametype)
-    if Config.screen_width <= 0 or Config.screen_height <= 0 or Config.scale_factor <= 0:
+    if game_type not in SUPPORTED_GAMES:
+        raise GameTypeError(game_type)
+    if width <= 0 or height <= 0 or not isfinite(scale) or scale <= 0:
         raise DisplayConfigurationError(
-            Config.screen_width,
-            Config.screen_height,
-            Config.scale_factor,
+            width,
+            height,
+            scale,
         )
     return RuntimeConfiguration(
         game_directory=game_directory,
-        game_type=Config.gametype,
-        width=Config.screen_width,
-        height=Config.screen_height,
-        scale=Config.scale_factor,
+        game_type=game_type,
+        width=width,
+        height=height,
+        scale=scale,
     )
 
 
 def initialize_editor(config_path: Path = _CONFIG_PATH) -> EditorController:
-    import mapedit_gl as renderer
     from pu6e_qt.controller import EditorController
 
     configuration = read_configuration(config_path)
     controller = EditorController()
     controller.load_game(configuration.game_directory, configuration.game_type)
-    renderer.screen_width = configuration.width
-    renderer.screen_height = configuration.height
-    renderer.scale_factor = configuration.scale
+    controller.camera.resize(configuration.width, configuration.height)
+    controller.camera.set_zoom(configuration.scale)
     controller.set_position(*_INITIAL_POSITION)
     return controller
 
@@ -130,6 +134,7 @@ def main() -> None:
     configure_opengl_format()
 
     from PySide6.QtWidgets import QApplication
+
     from pu6e_qt.game_profiles import GameProfileStore
     from pu6e_qt.launcher import LauncherWindow
     from pu6e_qt.theme import apply_theme

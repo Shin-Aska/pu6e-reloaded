@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from PySide6.QtWidgets import QApplication, QMessageBox, QWidget
 
-from test_core import write_game_fixture
+from game_fixtures import write_game_fixture
 from pu6e_qt.application import RuntimeConfiguration
 from pu6e_qt.controller import EditorController
 from pu6e_qt.game_profiles import GameProfile
@@ -193,7 +193,7 @@ def test_launcher_reports_expected_loader_parse_error(
 
     # Then: the launcher presents the parse cause without constructing an editor.
     _assert_failed_launch(
-        launcher, critical_dialogs, "md", "Martian Dreams", "File size", True
+        launcher, critical_dialogs, "md", "Martian Dreams", "file size 9 does not match header size 100", True
     )
     assert refreshed_profiles == [launcher.store.profile("md")]
     launcher.close()
@@ -219,7 +219,7 @@ def test_launcher_reports_truncated_palette_error(
         critical_dialogs,
         "se",
         "The Savage Empire",
-        "unpack requires a buffer of 3 bytes",
+        "palette: expected 768 bytes",
         True,
     )
     assert refreshed_profiles == [launcher.store.profile("se")]

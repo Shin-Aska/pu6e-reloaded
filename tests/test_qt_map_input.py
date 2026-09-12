@@ -3,11 +3,9 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from game_fixtures import write_game_fixture
 from PySide6.QtCore import Qt
 
-import mapedit_gl as renderer
-from test_core import write_game_fixture
-from U6 import Map, U6util, obj
 from pu6e_qt.controller import EditorController
 
 
@@ -17,7 +15,7 @@ def map_controller(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> EditorCon
     write_game_fixture(game_directory, "fp", "map interactions")
     controller = EditorController()
     controller.load_game(game_directory, "fp")
-    monkeypatch.setattr(renderer, "display_objects", 1)
+    controller.render_options.display_objects = True
     return controller
 
 
@@ -117,15 +115,15 @@ def test_object_drag_preserves_identity_and_original_anchor_offset(
 ) -> None:
     from pu6e_qt.map_input import MapInteraction
 
-    current = obj.default_object()
-    obj.add_object_at(current, 10, 10, 0)
-    monkeypatch.setattr(U6util, "lookable_at", lambda x, y, z: current)
+    current = map_controller.session.editor.new_object()
+    map_controller.session.editor.add_object_at(current, 10, 10, 0)
+    monkeypatch.setattr(type(map_controller.session.editor), "lookable_at", lambda self, x, y, z: current)
     interaction = MapInteraction(map_controller)
     interaction.press_left(9, 9, 0)
 
     interaction.release_left(20, 20, 0, shift=False, control=False)
 
-    destination = obj.objects_at(21, 21, 0)
+    destination = map_controller.session.editor.objects_at(21, 21, 0)
     assert destination is not None
     assert destination[-1] is current
 
@@ -135,15 +133,15 @@ def test_control_drag_creates_distinct_object_clone(
 ) -> None:
     from pu6e_qt.map_input import MapInteraction
 
-    original = obj.default_object()
-    obj.add_object_at(original, 4, 4, 0)
+    original = map_controller.session.editor.new_object()
+    map_controller.session.editor.add_object_at(original, 4, 4, 0)
     interaction = MapInteraction(map_controller)
     interaction.press_left(4, 4, 0)
 
     interaction.release_left(7, 7, 0, shift=False, control=True)
 
-    source = obj.objects_at(4, 4, 0)
-    destination = obj.objects_at(7, 7, 0)
+    source = map_controller.session.editor.objects_at(4, 4, 0)
+    destination = map_controller.session.editor.objects_at(7, 7, 0)
     assert source is not None and source[-1] is original
     assert destination is not None and destination[-1] is not original
 
@@ -151,14 +149,14 @@ def test_control_drag_creates_distinct_object_clone(
 def test_shift_drag_assigns_source_map_chunk(map_controller: EditorController) -> None:
     from pu6e_qt.map_input import MapInteraction
 
-    Map.chunks.append(list(Map.chunks[0]))
-    Map.set_chunk_at(1, 0, 0, 0)
+    map_controller.session.state.terrain.chunks.append(bytearray(map_controller.session.state.terrain.chunks[0]))
+    map_controller.session.editor.set_chunk(1, 0, 0, 0)
     interaction = MapInteraction(map_controller)
     interaction.press_left(1, 1, 0)
 
     interaction.release_left(9, 1, 0, shift=True, control=False)
 
-    assert Map.world_to_chunk_num(9, 1, 0)[0] == 1
+    assert map_controller.session.editor.chunk_at(9, 1, 0)[0] == 1
 
 
 def test_disabled_terrain_drag_does_not_change_destination(
@@ -166,13 +164,13 @@ def test_disabled_terrain_drag_does_not_change_destination(
 ) -> None:
     from pu6e_qt.map_input import MapInteraction
 
-    Map.set_maptile_at(7, 1, 1, 0)
+    map_controller.session.editor.set_map_tile(7, 1, 1, 0)
     interaction = MapInteraction(map_controller)
     interaction.press_left(1, 1, 0)
 
     interaction.release_left(2, 2, 0, shift=False, control=False)
 
-    assert Map.maptile_at(2, 2, 0) == 0
+    assert map_controller.session.editor.map_tile_at(2, 2, 0) == 0
 
 
 def test_enabled_terrain_drag_copies_source_background_tile(
@@ -180,14 +178,14 @@ def test_enabled_terrain_drag_copies_source_background_tile(
 ) -> None:
     from pu6e_qt.map_input import MapInteraction
 
-    Map.set_maptile_at(7, 1, 1, 0)
+    map_controller.session.editor.set_map_tile(7, 1, 1, 0)
     map_controller.terrain_mode = True
     interaction = MapInteraction(map_controller)
     interaction.press_left(1, 1, 0)
 
     interaction.release_left(2, 2, 0, shift=False, control=False)
 
-    assert Map.maptile_at(2, 2, 0) == 7
+    assert map_controller.session.editor.map_tile_at(2, 2, 0) == 7
 
 
 def test_right_drag_paints_each_entered_background_tile(
@@ -201,7 +199,7 @@ def test_right_drag_paints_each_entered_background_tile(
 
     interaction.drag_right(2, 1, 0)
 
-    assert (Map.maptile_at(1, 1, 0), Map.maptile_at(2, 1, 0)) == (13, 13)
+    assert (map_controller.session.editor.map_tile_at(1, 1, 0), map_controller.session.editor.map_tile_at(2, 1, 0)) == (13, 13)
 
 
 def test_right_paint_rejects_object_only_tile_ids(
@@ -215,7 +213,7 @@ def test_right_paint_rejects_object_only_tile_ids(
     painted = interaction.press_right(1, 1, 0)
 
     assert painted is False
-    assert Map.maptile_at(1, 1, 0) == 0
+    assert map_controller.session.editor.map_tile_at(1, 1, 0) == 0
 
 
 def test_clicking_empty_location_does_not_create_world_point(
@@ -228,4 +226,4 @@ def test_clicking_empty_location_does_not_create_world_point(
 
     interaction.release_left(1, 1, 0, shift=False, control=False)
 
-    assert obj.objects_at(1, 1, 0) is None
+    assert map_controller.session.editor.objects_at(1, 1, 0) is None

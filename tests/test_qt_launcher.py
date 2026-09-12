@@ -6,8 +6,7 @@ from pathlib import Path
 import pytest
 from PySide6.QtWidgets import QApplication, QWidget
 
-from test_core import write_game_fixture
-from U6 import Config
+from game_fixtures import write_game_fixture
 from pu6e_qt.renderer_settings import RendererMode, RendererRuntime
 
 
@@ -196,8 +195,8 @@ def test_launcher_opens_selected_game_in_editor(
     launcher.cards["se"].click()
     launcher.stage.launch_button.click()
 
-    assert Config.gametype == "se"
     assert launcher.editor_window is not None
+    assert launcher.editor_window.controller.session.state.game_type == "se"
     assert launcher.editor_window.controller.position == (0x134, 0x16C, 0)
     assert launcher.editor_window.isVisible()
     launcher.editor_window.close()

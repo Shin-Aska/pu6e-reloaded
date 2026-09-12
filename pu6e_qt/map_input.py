@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-import mapedit_gl as render
-from U6 import Map, U6util, obj
+from pu6e_core.models.objects import WorldObject
 from pu6e_qt.controller import EditorController
 
 
@@ -12,7 +11,7 @@ class DragOrigin:
     x: int
     y: int
     z: int
-    item: obj.Obj | None
+    item: WorldObject | None
 
 
 class MapInteraction:
@@ -20,9 +19,14 @@ class MapInteraction:
         self.controller = controller
         self.drag_origin: DragOrigin | None = None
         self.right_origin: tuple[int, int, int] | None = None
+        controller.session_changed.connect(self._clear_gesture)
+
+    def _clear_gesture(self) -> None:
+        self.drag_origin = None
+        self.right_origin = None
 
     def press_left(self, x: int, y: int, z: int) -> None:
-        item: obj.Obj | None = U6util.lookable_at(x, y, z) if render.display_objects else None
+        item = self.controller.session.editor.lookable_at(x, y, z) if self.controller.render_options.display_objects else None
         self.drag_origin = DragOrigin(x=x, y=y, z=z, item=item)
 
     def release_left(
@@ -39,8 +43,8 @@ class MapInteraction:
         if origin is not None and (origin.x, origin.y, origin.z) != (x, y, z):
             self._drop(origin, x, y, z, shift=shift, control=control)
 
-        self.controller.set_selected_tile(Map.maptile_at(x, y, z))
-        selected = U6util.lookable_at(x, y, z) if render.display_objects else None
+        self.controller.set_selected_tile(self.controller.session.editor.map_tile_at(x, y, z))
+        selected = self.controller.session.editor.lookable_at(x, y, z) if self.controller.render_options.display_objects else None
         self.controller.select_location(x, y, z)
         self.controller.select_object(selected)
 
@@ -55,7 +59,7 @@ class MapInteraction:
         control: bool,
     ) -> None:
         if shift:
-            source_chunk = Map.world_to_chunk_num(origin.x, origin.y, origin.z)[0]
+            source_chunk = self.controller.session.editor.chunk_at(origin.x, origin.y, origin.z)[0]
             self.controller.set_chunk(source_chunk, x, y, z)
             return
 
@@ -70,7 +74,7 @@ class MapInteraction:
             return
 
         if self.controller.terrain_mode:
-            source_tile = Map.maptile_at(origin.x, origin.y, origin.z)
+            source_tile = self.controller.session.editor.map_tile_at(origin.x, origin.y, origin.z)
             if 0 <= source_tile <= 255:
                 self.controller.paint_tile(source_tile, x, y, z)
 

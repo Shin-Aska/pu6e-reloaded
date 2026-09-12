@@ -7,8 +7,8 @@ import pytest
 
 from pu6e_qt import game_profiles
 from pu6e_qt.game_profiles import GameProfile, GameProfileStore
-from test_core import write_game_fixture
-from U6 import pal
+from game_fixtures import write_game_fixture
+from pu6e_core.formats.resources import palette_filename
 
 GAMES = ("fp", "md", "se")
 
@@ -41,7 +41,7 @@ def test_profile_distinguishes_missing_directory_for_each_game(tmp_path: Path, g
     assert profile.issue is not None
     assert profile.issue.kind.value == "directory_missing"
     assert profile.issue.paths == (str(directory.resolve()),)
-    assert pal.paths[game] in profile.missing_files
+    assert palette_filename(game) in profile.missing_files
 
 
 @pytest.mark.parametrize("game", GAMES)
@@ -106,19 +106,19 @@ def test_profile_detects_every_wrong_supported_game_pair(
     assert profile.issue.kind.value == "wrong_game"
     assert profile.issue.detected_game is not None
     assert profile.issue.detected_game.key == actual_game
-    assert pal.paths[expected_game] in profile.missing_files
+    assert palette_filename(expected_game) in profile.missing_files
 
 
 @pytest.mark.parametrize("game", GAMES)
 def test_profile_distinguishes_missing_expected_palette(tmp_path: Path, game: str) -> None:
     store, directory = _installation(tmp_path, game)
-    (directory / pal.paths[game]).unlink()
+    (directory / palette_filename(game)).unlink()
 
     profile = store.inspect(game, directory)
 
     assert profile.issue is not None
     assert profile.issue.kind.value == "missing_palette"
-    assert profile.issue.paths == (pal.paths[game],)
+    assert profile.issue.paths == (palette_filename(game),)
 
 
 @pytest.mark.parametrize("game", GAMES)
@@ -127,7 +127,7 @@ def test_profile_accepts_case_insensitive_game_filenames(
     tmp_path: Path, game: str, resource: str
 ) -> None:
     store, directory = _installation(tmp_path, game)
-    expected_name = pal.paths[game] if resource == "palette" else resource
+    expected_name = palette_filename(game) if resource == "palette" else resource
     actual_name = expected_name.upper()
     (directory / expected_name).rename(directory / actual_name)
 
@@ -202,10 +202,10 @@ def test_profile_avoids_confident_wrong_game_for_ambiguous_palettes(
     tmp_path: Path, game: str
 ) -> None:
     store, directory = _installation(tmp_path, game)
-    (directory / pal.paths[game]).unlink()
+    (directory / palette_filename(game)).unlink()
     for other in GAMES:
         if other != game:
-            (directory / pal.paths[other]).write_bytes(b"palette signature")
+            (directory / palette_filename(other)).write_bytes(b"palette signature")
 
     profile = store.inspect(game, directory)
 

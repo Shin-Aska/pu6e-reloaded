@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QLabel,
@@ -14,9 +12,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from U6 import Config, NPCs
 from pu6e_qt.controller import EditorController
-from pu6e_qt.conversations import read_conversations
+from pu6e_qt.conversations import Conversation, read_conversations
 from pu6e_qt.icons import action_icon
 
 
@@ -24,7 +21,7 @@ class QuestNavigator(QWidget):
     def __init__(self, controller: EditorController, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.controller = controller
-        self._conversations = read_conversations(Path(Config.gamedir))
+        self._conversations: tuple[Conversation, ...] = ()
 
         self.search = QLineEdit(self)
         self.search.setPlaceholderText("Search character, clue, or dialogue")
@@ -58,7 +55,16 @@ class QuestNavigator(QWidget):
         self.entries.currentItemChanged.connect(self._show_conversation)
         self.entries.itemActivated.connect(self._jump_to_character)
         self.jump.clicked.connect(self._jump_to_character)
-        self._filter("")
+        controller.session_changed.connect(self.refresh)
+        self.refresh()
+
+    def refresh(self) -> None:
+        self._conversations = (
+            read_conversations(self.controller.session.state.game_dir)
+            if self.controller.is_loaded
+            else ()
+        )
+        self._filter(self.search.text())
 
     def _filter(self, query: str) -> None:
         self.entries.clear()
@@ -89,14 +95,14 @@ class QuestNavigator(QWidget):
         npc_id = current.data(Qt.ItemDataRole.UserRole)
         conversation = next(entry for entry in self._conversations if entry.npc_id == npc_id)
         self.preview.setPlainText(conversation.dialogue)
-        npc = NPCs.npcs[npc_id]
-        self.jump.setEnabled(bool(npc.type) and 0 <= npc.z <= 5)
+        npc = self.controller.session.state.npcs[npc_id]
+        self.jump.setEnabled(bool(npc.packed_type) and 0 <= npc.z <= 5)
 
     def _jump_to_character(self) -> None:
         current = self.entries.currentItem()
         if current is None:
             return
-        npc = NPCs.npcs[current.data(Qt.ItemDataRole.UserRole)]
-        if not npc.type or not 0 <= npc.z <= 5:
+        npc = self.controller.session.state.npcs[current.data(Qt.ItemDataRole.UserRole)]
+        if not npc.packed_type or not 0 <= npc.z <= 5:
             return
         self.controller.set_position(npc.x, npc.y, npc.z)

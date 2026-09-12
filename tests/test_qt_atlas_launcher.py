@@ -8,7 +8,7 @@ from PySide6.QtWidgets import QApplication, QWidget
 from pu6e_qt.game_profiles import GameProfileStore
 from pu6e_qt.launcher import LauncherWindow
 from pu6e_qt.renderer_settings import RendererMode, RendererRuntime
-from test_core import write_game_fixture
+from game_fixtures import write_game_fixture
 
 
 @pytest.fixture(scope="session")

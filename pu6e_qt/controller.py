@@ -4,13 +4,17 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-from PySide6.QtCore import QObject, Signal
+from PySide6.QtCore import QObject, QSignalBlocker, Signal
 from PySide6.QtGui import QUndoStack
 
-import mapedit_gl as renderer
-from U6 import Map, NPCs, obj, pal
-
+from pu6e_core.models.coordinates import adjust_coords_for_level
+from pu6e_core.models.objects import WorldObject
+from pu6e_core.services.loader import WorldLoader
+from pu6e_core.services.saver import WorldSaver
+from pu6e_core.services.session import WorldSession
 from pu6e_qt.commands import ChunkSetCommand, TilePaintCommand
+from pu6e_qt.rendering.camera import CameraState
+from pu6e_qt.rendering.options import RenderOptions
 
 
 @dataclass(frozen=True, slots=True)
@@ -29,6 +33,11 @@ class InvalidObjectPropertyError(ValueError):
         return f"unsupported editable object property: {self.name}"
 
 
+class SessionNotLoadedError(RuntimeError):
+    def __init__(self) -> None:
+        super().__init__("Load a game before accessing its world")
+
+
 class EditorController(QObject):
     """Mutable editor session state; mutations notify Qt consumers immediately."""
 
@@ -40,19 +49,37 @@ class EditorController(QObject):
     error = Signal(str)
     selected_tile_changed = Signal(int)
     terrain_mode_changed = Signal(bool)
+    session_changed = Signal()
 
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self.undo_stack = QUndoStack(self)
         self.undo_stack.cleanChanged.connect(self._update_clean_state)
-        self.position: tuple[int, int, int] = (0, 0, 0)
+        self.camera = CameraState()
+        self.render_options = RenderOptions()
+        self.loader = WorldLoader()
+        self.saver = WorldSaver()
+        self._session: WorldSession | None = None
         self.selected_location: tuple[int, int, int] | None = None
-        self.selected_object: obj.Obj | None = None
+        self.selected_object: WorldObject | None = None
         self._selected_tile = 0
         self._terrain_mode = False
         self._manual_dirty = False
         self.dirty = False
-        self.palette: pal.pal | None = None
+
+    @property
+    def session(self) -> WorldSession:
+        if self._session is None:
+            raise SessionNotLoadedError()
+        return self._session
+
+    @property
+    def is_loaded(self) -> bool:
+        return self._session is not None
+
+    @property
+    def position(self) -> tuple[int, int, int]:
+        return self.camera.position
 
     @property
     def selected_tile(self) -> int:
@@ -73,18 +100,26 @@ class EditorController(QObject):
         self.terrain_mode_changed.emit(enabled)
 
     def load_game(self, directory: Path, game: str) -> None:
-        renderer.read_data(str(directory), game)
-        self.palette = renderer.palette
+        self.replace_session(self.loader.load(directory, game))
+
+    def replace_session(self, session: WorldSession) -> None:
+        self._session = session
         self._manual_dirty = False
-        self.undo_stack.clear()
+        with QSignalBlocker(self.undo_stack):
+            self.undo_stack.clear()
+        self.selected_location = None
+        self.selected_object = None
+        self._selected_tile = 0
         self.dirty = False
-        self.set_position(0, 0, 0)
+        self.camera.set_position(0, 0, 0)
+        self.session_changed.emit()
+        self.selected_object_changed.emit(None)
+        self.selected_tile_changed.emit(0)
+        self.position_changed.emit(*self.position)
         self.changed.emit(False)
 
     def save(self) -> None:
-        obj.write_changes()
-        NPCs.write()
-        Map.write_changes()
+        self.saver.save(self.session)
         self._manual_dirty = False
         self.undo_stack.setClean()
         self.dirty = False
@@ -92,8 +127,7 @@ class EditorController(QObject):
         self.saved.emit()
 
     def set_position(self, x: int, y: int, z: int) -> None:
-        renderer.set_centered_coords(x, y, z)
-        self.position = renderer.get_centered_coords()
+        self.camera.set_position(x, y, z)
         self.position_changed.emit(*self.position)
 
     def select_location(self, x: int, y: int, z: int) -> None:
@@ -102,7 +136,7 @@ class EditorController(QObject):
 
     def change_level(self, new_z: int, quality: int = 0) -> None:
         x, y, z = self.position
-        destination = Map.adjust_coords_for_level(x, y, z, new_z, quality)
+        destination = adjust_coords_for_level(x, y, z, new_z, quality)
         self.set_position(*destination)
 
     def set_selected_tile(self, tile_id: int) -> None:
@@ -117,12 +151,12 @@ class EditorController(QObject):
     def paint_tile(self, tile_id: int, x: int, y: int, z: int) -> None:
         if not 0 <= tile_id <= 255:
             raise InvalidBackgroundTileError(tile_id)
-        self.undo_stack.push(TilePaintCommand(tile_id, x, y, z))
+        self.undo_stack.push(TilePaintCommand(self.session.editor, tile_id, x, y, z))
 
     def set_chunk(self, chunk_id: int, x: int, y: int, z: int) -> None:
-        self.undo_stack.push(ChunkSetCommand(chunk_id, x, y, z))
+        self.undo_stack.push(ChunkSetCommand(self.session.editor, chunk_id, x, y, z))
 
-    def select_object(self, item: obj.Obj | None) -> None:
+    def select_object(self, item: WorldObject | None) -> None:
         self.selected_object = item
         self.selected_object_changed.emit(item)
 
@@ -136,17 +170,17 @@ class EditorController(QObject):
         self.changed.emit(self.dirty)
 
     def mark_dirty(self, x: int, y: int, z: int) -> None:
-        obj.updated_at(x, y, z)
+        self.session.editor.mark_object_changed(x, y, z)
         self.mark_changed()
 
-    def mark_object_changed(self, item: obj.Obj) -> None:
+    def mark_object_changed(self, item: WorldObject) -> None:
         location = self.selected_location
         if location is None:
             self.mark_dirty(item.x, item.y, item.z)
             return
         self.mark_dirty(*location)
 
-    def update_object_property(self, item: obj.Obj, name: str, value: int) -> None:
+    def update_object_property(self, item: WorldObject, name: str, value: int) -> None:
         updaters: dict[str, Callable[[int], None]] = {
             "quantity": lambda current: setattr(item, "quantity", current),
             "quality": lambda current: setattr(item, "quality", current),
@@ -160,19 +194,17 @@ class EditorController(QObject):
         updater(value)
         self.mark_object_changed(item)
 
-    def move_object(self, item: obj.Obj, x: int, y: int, z: int) -> bool:
-        if not obj.remove_object_at(item, item.x, item.y, item.z):
+    def move_object(self, item: WorldObject, x: int, y: int, z: int) -> bool:
+        if not self.session.editor.move_object(item, x, y, z):
             return False
-        obj.add_object_at(item, x, y, z)
         self.select_object(item)
         self.mark_changed()
         return True
 
-    def copy_object(self, item: obj.Obj, x: int, y: int, z: int) -> obj.Obj | None:
-        copy = item.clone()
+    def copy_object(self, item: WorldObject, x: int, y: int, z: int) -> WorldObject | None:
+        copy = self.session.editor.copy_object(item, x, y, z)
         if copy is None:
             return None
-        obj.add_object_at(copy, x, y, z)
         self.select_object(copy)
         self.mark_changed()
         return copy

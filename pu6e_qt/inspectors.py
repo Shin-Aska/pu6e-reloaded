@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from PySide6.QtCore import QSignalBlocker, Signal
 from PySide6.QtWidgets import QFormLayout, QLineEdit, QSpinBox, QWidget
 
-from U6.obj import Obj
+from pu6e_core.models.objects import WorldObject
 
 from .object_tree import ObjectStack
 
@@ -16,12 +16,12 @@ __all__ = ["ObjectInspector", "ObjectStack"]
 
 
 class ObjectInspector(QWidget):
-    object_changed = Signal(Obj)
+    object_changed = Signal(WorldObject)
 
     def __init__(self, controller: EditorController) -> None:
         super().__init__()
         self.controller = controller
-        self.current_object: Obj | None = None
+        self.current_object: WorldObject | None = None
         self.type = QSpinBox(self)
         self.type.setRange(0, 0x3FF)
         self.frame = QSpinBox(self)
@@ -53,8 +53,12 @@ class ObjectInspector(QWidget):
         self.quality.valueChanged.connect(self._quality_changed)
         self.status.valueChanged.connect(self._status_changed)
         self.set_object(None)
+        controller.session_changed.connect(self._session_changed)
 
-    def set_object(self, selected: Obj | None) -> None:
+    def _session_changed(self) -> None:
+        self.set_object(None)
+
+    def set_object(self, selected: WorldObject | None) -> None:
         self.current_object = selected
         blockers = [
             QSignalBlocker(field)
@@ -70,7 +74,7 @@ class ObjectInspector(QWidget):
             self.status.setValue(0)
             self.weight.clear()
         else:
-            self.type.setValue(selected.basetype())
+            self.type.setValue(selected.base_type)
             self.frame.setRange(0, max(0, selected.num_frames() - 1))
             self.frame.setValue(selected.frame())
             self.quantity.setValue(selected.quantity)

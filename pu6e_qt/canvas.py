@@ -7,11 +7,11 @@ from PySide6.QtGui import QKeyEvent, QMouseEvent, QSurfaceFormat, QWheelEvent
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from PySide6.QtWidgets import QApplication, QWidget
 
-import mapedit_gl as render
 from pu6e_qt.controller import EditorController
 from pu6e_qt.map_input import MapInteraction
 from pu6e_qt.map_navigation import navigation_action
 from pu6e_qt.map_pan import PanAnchor, dragged_world_position
+from pu6e_qt.rendering.renderer import MapRenderer
 
 _ANIMATION_INTERVAL_MS: Final = 51
 MINIMUM_ZOOM: Final = 0.25
@@ -62,6 +62,7 @@ class MapCanvas(QOpenGLWidget):
         super().__init__(parent)
         self.controller = controller
         self.interaction = MapInteraction(controller)
+        self.renderer = MapRenderer(controller.session, controller.camera, controller.render_options)
         self._pan_anchor: PanAnchor | None = None
         self._pending_pan: QPointF | None = None
         self._pan_button = Qt.MouseButton.NoButton
@@ -75,6 +76,7 @@ class MapCanvas(QOpenGLWidget):
         self.timer.start()
         self.controller.position_changed.connect(self.update)
         self.controller.changed.connect(self.update)
+        self.controller.session_changed.connect(self._replace_session)
 
     def initializeGL(self) -> None:
         try:
@@ -86,18 +88,40 @@ class MapCanvas(QOpenGLWidget):
             return
 
         width, height = self._framebuffer_size(self.width(), self.height())
-        render.InitGL(width, height)
+        self.renderer.initialize(width, height)
         self._renderer_ready = True
+        context = self.context()
+        if context is not None:
+            context.aboutToBeDestroyed.connect(self._dispose_renderer)
+
+    def _dispose_renderer(self) -> None:
+        self.makeCurrent()
+        try:
+            self.renderer.dispose()
+        finally:
+            self.doneCurrent()
+            self._renderer_ready = False
+
+    def _replace_session(self) -> None:
+        self._end_pan()
+        if self._renderer_ready:
+            self.makeCurrent()
+        try:
+            self.renderer.set_session(self.controller.session)
+        finally:
+            if self._renderer_ready:
+                self.doneCurrent()
+        self.update()
 
     def resizeGL(self, width: int, height: int) -> None:
         if not self._renderer_ready:
             return
         framebuffer_width, framebuffer_height = self._framebuffer_size(width, height)
-        render.Resize(framebuffer_width, framebuffer_height)
+        self.renderer.resize(framebuffer_width, framebuffer_height)
 
     def paintGL(self) -> None:
         if self._renderer_ready:
-            render.draw()
+            self.renderer.paint()
 
     def _framebuffer_size(self, width: int, height: int) -> tuple[int, int]:
         ratio = self.devicePixelRatioF()
@@ -105,24 +129,28 @@ class MapCanvas(QOpenGLWidget):
 
     def _world_at(self, position: QPointF) -> tuple[int, int, int]:
         ratio = self.devicePixelRatioF()
-        return render.screen_to_world(position.x() * ratio, position.y() * ratio)
+        return self.controller.camera.screen_to_world(position.x() * ratio, position.y() * ratio)
 
     def _advance_animation(self) -> None:
-        render.tick()
+        self.renderer.tick()
         self.update()
 
     def zoom(self, factor: float) -> None:
         if factor <= 0:
             return
-        scale = max(MINIMUM_ZOOM, min(MAXIMUM_ZOOM, render.scale_factor * factor))
-        if scale == render.scale_factor:
+        camera = self.controller.camera
+        scale = max(MINIMUM_ZOOM, min(MAXIMUM_ZOOM, camera.scale * factor))
+        if scale == camera.scale:
             return
-        render.scale_factor = scale
-        if self.isValid():
+        camera.set_zoom(scale)
+        camera.resize(*self._framebuffer_size(self.width(), self.height()))
+        if self._renderer_ready and self.isValid():
             self.makeCurrent()
-            render.Resize(*self._framebuffer_size(self.width(), self.height()))
-            self.doneCurrent()
-        self.zoom_changed.emit(render.scale_factor)
+            try:
+                self.renderer.resize(camera.width, camera.height)
+            finally:
+                self.doneCurrent()
+        self.zoom_changed.emit(camera.scale)
         self.update()
 
     def set_coords(self, x: int, y: int, z: int) -> None:
@@ -231,7 +259,7 @@ class MapCanvas(QOpenGLWidget):
         anchor = self._pan_anchor
         if anchor is None:
             return
-        pixels_per_tile = 16.0 * render.scale_factor / self.devicePixelRatioF()
+        pixels_per_tile = 16.0 * self.controller.camera.scale / self.devicePixelRatioF()
         position = dragged_world_position(anchor, pointer, pixels_per_tile)
         if position != self.controller.position:
             self.controller.set_position(*position)

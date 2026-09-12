@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from test_core import write_game_fixture
+from game_fixtures import write_game_fixture
 
 
 @pytest.mark.parametrize("game", ("fp", "md", "se"))
@@ -12,8 +12,6 @@ def test_application_initializes_every_supported_game_fixture(
     tmp_path: Path, game: str
 ) -> None:
     from pu6e_qt.application import initialize_editor
-    from U6 import Config
-    import mapedit_gl as renderer
 
     game_dir = tmp_path / game
     write_game_fixture(game_dir, game, game)
@@ -30,13 +28,13 @@ def test_application_initializes_every_supported_game_fixture(
     controller = initialize_editor(config_path)
 
     assert controller is not None
-    assert Config.gamedir == str(game_dir.resolve())
-    assert Config.gametype == game
+    assert controller.session.state.game_dir == game_dir.resolve()
+    assert controller.session.state.game_type == game
     assert controller.position == (0x134, 0x16C, 0)
-    assert renderer.get_centered_coords() == (0x134, 0x16C, 0)
-    assert renderer.screen_width == 800
-    assert renderer.screen_height == 600
-    assert renderer.scale_factor == 1.5
+    assert controller.camera.position == (0x134, 0x16C, 0)
+    assert controller.camera.width == 800
+    assert controller.camera.height == 600
+    assert controller.camera.scale == 1.5
 
 
 def test_application_rejects_missing_game_directory(tmp_path: Path) -> None:

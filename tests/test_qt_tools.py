@@ -1,21 +1,30 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
+from game_fixtures import write_game_fixture
+from PySide6.QtWidgets import QApplication
 
-from test_core import write_game_fixture
-from U6 import Map, book
+from pu6e_qt.controller import EditorController
 
 
 @pytest.fixture(scope="session")
-def qapp():
-    from PySide6.QtWidgets import QApplication
-
+def qapp() -> QApplication:
     return QApplication.instance() or QApplication([])
 
 
-def test_goto_accepts_bounded_hexadecimal_coordinates(qapp) -> None:
+@pytest.fixture
+def tools_controller(tmp_path: Path, qapp: QApplication) -> EditorController:
+    game_dir = tmp_path / "fp"
+    write_game_fixture(game_dir, "fp", "tools")
+    controller = EditorController()
+    controller.load_game(game_dir, "fp")
+    return controller
+
+
+def test_goto_accepts_bounded_hexadecimal_coordinates(qapp: QApplication) -> None:
     from pu6e_qt.dialogs import GoToDialog
 
     dialog = GoToDialog((0, 0, 0))
@@ -29,7 +38,7 @@ def test_goto_accepts_bounded_hexadecimal_coordinates(qapp) -> None:
     assert dialog.values() == (0x134, 0x16C, 0)
 
 
-def test_goto_does_not_accept_out_of_range_hexadecimal_coordinate(qapp) -> None:
+def test_goto_does_not_accept_out_of_range_hexadecimal_coordinate(qapp: QApplication) -> None:
     from pu6e_qt.dialogs import GoToDialog
 
     dialog = GoToDialog((0, 0, 0))
@@ -40,39 +49,72 @@ def test_goto_does_not_accept_out_of_range_hexadecimal_coordinate(qapp) -> None:
     assert dialog.result() != dialog.DialogCode.Accepted
 
 
-def test_chunk_inspector_updates_fixture_map(tmp_path: Path, qapp) -> None:
-    from pu6e_qt.controller import EditorController
+def test_chunk_inspector_updates_fixture_map(tools_controller: EditorController) -> None:
     from pu6e_qt.tools import ChunkInspector
 
-    game_dir = tmp_path / "fp"
-    write_game_fixture(game_dir, "fp", "tools")
-    controller = EditorController()
-    controller.load_game(game_dir, "fp")
-    old_chunk, _, _ = Map.world_to_chunk_num(0, 0, 0)
+    controller = tools_controller
+    old_chunk, _, _ = controller.session.editor.chunk_at(0, 0, 0)
     inspector = ChunkInspector(controller)
     inspector.set_mapchunk(0, 0, 0)
 
     inspector.chunk.setValue((old_chunk + 1) % 0x400)
 
-    assert Map.world_to_chunk_num(0, 0, 0)[0] != old_chunk
-    assert Map.map_dirty == 1
+    assert controller.session.editor.chunk_at(0, 0, 0)[0] != old_chunk
+    assert controller.session.state.terrain.map_dirty
 
 
-def test_book_viewer_is_read_only_and_handles_bookless_game_data(qapp, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_book_viewer_is_read_only_and_handles_bookless_game_data(tools_controller: EditorController) -> None:
     from pu6e_qt.tools import BookViewer
 
-    monkeypatch.setattr(book, "books", [])
-    viewer = BookViewer()
+    state = tools_controller.session.state
+    state.assets = replace(state.assets, books=())
+    viewer = BookViewer(tools_controller)
 
     assert viewer.text.isReadOnly()
     assert not viewer.book_index.isEnabled()
     assert viewer.text.toPlainText() == "No book text is available for this game."
 
 
-def test_book_viewer_treats_empty_md_se_entries_as_bookless(qapp, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_book_viewer_treats_empty_md_se_entries_as_bookless(tools_controller: EditorController) -> None:
     from pu6e_qt.tools import BookViewer
 
-    monkeypatch.setattr(book, "books", [""] * 128)
-    viewer = BookViewer()
+    state = tools_controller.session.state
+    state.assets = replace(state.assets, books=("",) * 128)
+    viewer = BookViewer(tools_controller)
 
     assert not viewer.book_index.isEnabled()
+
+
+def test_book_viewer_replaces_text_when_controller_loads_another_game(
+    tools_controller: EditorController, tmp_path: Path,
+) -> None:
+    from pu6e_qt.tools import BookViewer
+
+    state = tools_controller.session.state
+    state.assets = replace(state.assets, books=("First world book",))
+    viewer = BookViewer(tools_controller)
+    assert viewer.text.toPlainText() == "First world book"
+    directory = tmp_path / "second"
+    write_game_fixture(directory, "fp", "second")
+    (directory / "book.dat").write_bytes(bytes(256) + b"Second world book\0")
+
+    tools_controller.load_game(directory, "fp")
+
+    assert viewer.text.toPlainText() == "Second world book"
+    assert viewer.book_index.isEnabled()
+
+
+def test_tile_browser_replaces_catalog_when_controller_loads_another_game(
+    tools_controller: EditorController, tmp_path: Path,
+) -> None:
+    from pu6e_qt.tiles import TileBrowser
+
+    browser = TileBrowser(tools_controller)
+    assert "tools" in browser.grid.item(0).text()
+    directory = tmp_path / "second"
+    write_game_fixture(directory, "fp", "second tiles")
+
+    tools_controller.load_game(directory, "fp")
+
+    assert "second tiles" in browser.grid.item(0).text()
+    assert browser.selected_tile() == tools_controller.selected_tile

@@ -1,16 +1,26 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
-from typing import Final, Protocol
+from typing import TYPE_CHECKING, Final
 
-from PySide6.QtCore import Qt, QSize, Signal
+from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtGui import QIcon, QImage, QPixmap
-from PySide6.QtWidgets import QAbstractItemView, QLineEdit, QListWidget, QListWidgetItem, QLabel, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QAbstractItemView,
+    QLabel,
+    QLineEdit,
+    QListWidget,
+    QListWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
 
-from U6 import look, pal, tile
+from pu6e_core.models.assets import RGB
+
+if TYPE_CHECKING:
+    from pu6e_qt.controller import EditorController
 
 TileId = int
-RGB = tuple[int, int, int]
 PaletteEntries = Sequence[RGB]
 TileNameLookup = Callable[[TileId], str | None]
 
@@ -18,20 +28,6 @@ TILE_EDGE: Final = 16
 TILE_PIXELS: Final = TILE_EDGE * TILE_EDGE
 BACKGROUND_TILE_LIMIT: Final = 256
 GAME_TILE_LIMIT: Final = 2048
-
-
-class IntegerSignal(Protocol):
-    def connect(self, slot: Callable[[int], None], /) -> None:
-        pass
-
-
-class TileSelectionController(Protocol):
-    selected_tile: TileId
-    selected_tile_changed: IntegerSignal
-    palette: pal.pal | None
-
-    def set_selected_tile(self, tile_id: TileId, /) -> None:
-        pass
 
 
 def indexed_tile_image(indexed_pixels: bytes, palette: PaletteEntries) -> QImage | None:
@@ -66,23 +62,18 @@ class TileBrowser(QWidget):
 
     def __init__(
         self,
-        controller: TileSelectionController | None = None,
+        controller: EditorController | None = None,
         parent: QWidget | None = None,
         *,
         palette: PaletteEntries | None = None,
         tiles: Sequence[bytes] | None = None,
-        name_for_tile: TileNameLookup = look.get_obj_name,
+        name_for_tile: TileNameLookup | None = None,
     ) -> None:
         super().__init__(parent)
         self._controller = controller
-        controller_palette = (
-            controller.palette.pal
-            if controller is not None and controller.palette is not None
-            else None
-        )
-        self._palette = palette if palette is not None else controller_palette
-        self._tiles = tiles
-        self._name_for_tile = name_for_tile
+        self._palette = palette
+        self._tiles = tiles if tiles is not None else ()
+        self._name_for_tile: TileNameLookup = name_for_tile or (lambda _tile_id: None)
         self._selected_tile: TileId | None = None
 
         self.setAccessibleName("Tile library")
@@ -113,9 +104,27 @@ class TileBrowser(QWidget):
         self.grid.currentItemChanged.connect(self._grid_selection_changed)
         if controller is not None:
             controller.selected_tile_changed.connect(self.select_tile)
+            controller.session_changed.connect(self._session_changed)
+            self._session_changed()
+        else:
+            self.reload_tiles()
+
+    def _session_changed(self) -> None:
+        controller = self._controller
+        if controller is None:
+            return
+        self._selected_tile = None
+        if controller.is_loaded:
+            assets = controller.session.state.assets
+            self._palette = assets.palette.colors
+            self._tiles = assets.tiles.pixels
+            self._name_for_tile = assets.catalog.name_for_tile
+        else:
+            self._palette = None
+            self._tiles = ()
+            self._name_for_tile = lambda _tile_id: None
         self.reload_tiles()
-        if controller is not None:
-            self.select_tile(controller.selected_tile)
+        self.select_tile(controller.selected_tile)
 
     def reload_tiles(
         self,
@@ -128,8 +137,9 @@ class TileBrowser(QWidget):
         if tiles is not None:
             self._tiles = tiles
         self.grid.clear()
+        self.summary.setText("No tile selected")
         current_palette = self._palette
-        current_tiles = self._tiles if self._tiles is not None else tile.maptiles
+        current_tiles = self._tiles
         if current_palette is None:
             self.summary.setText("Tile graphics unavailable: no palette is loaded")
             return

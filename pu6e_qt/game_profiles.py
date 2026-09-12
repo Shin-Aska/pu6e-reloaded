@@ -7,7 +7,12 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Final, assert_never
 
-from U6 import Config, dospath, obj, pal
+from pu6e_core.formats.resources import (
+    SUPPORTED_GAMES,
+    palette_filename,
+    required_game_files,
+    resolve_dos_path,
+)
 from pu6e_qt.renderer_settings import (
     RendererMode,
     VulkanDeviceSelector,
@@ -159,7 +164,7 @@ class GameProfileStore:
         if self._configuration.has_section("pu6e"):
             game = self._configuration.get("pu6e", "gametype", fallback="fp")
             directory = self._configuration.get("pu6e", "gamedir", fallback="")
-            if game in Config.paths and directory:
+            if game in SUPPORTED_GAMES and directory:
                 self._directories[game] = self._resolve(directory)
 
         for specification in GAMES:
@@ -178,19 +183,8 @@ class GameProfileStore:
             )
 
         resolved = directory.expanduser().resolve()
-        resources = {
-            "basetile",
-            "chunks",
-            "map",
-            "savegame/objlist",
-            pal.paths[game],
-            *(filename for filename, encoding in Config.paths[game].values()
-              if not encoding & Config.EMPTY),
-            *(f"savegame/objblk{obj.block_num_to_id(block)}" for block in range(69)),
-        }
-        if game == "fp":
-            resources.add("book.dat")
-        resource_paths = {name: dospath.resolve_dos_path(resolved / name) for name in resources}
+        resources = required_game_files(game)
+        resource_paths = {name: resolve_dos_path(resolved / name) for name in resources}
         missing = tuple(sorted(name for name, path in resource_paths.items() if not path.is_file()))
 
         if not resolved.exists():
@@ -203,7 +197,7 @@ class GameProfileStore:
             candidates = ("savegame", *sorted(resources))
             denied = next(
                 (name for name in candidates
-                 if (path := dospath.resolve_dos_path(resolved / name)).exists()
+                 if (path := resolve_dos_path(resolved / name)).exists()
                  and not _is_readable(path)),
                 None,
             )
@@ -302,14 +296,14 @@ def _is_readable(path: Path) -> bool:
 def _inspect_directory(
     game: GameSpecification, directory: Path, missing: tuple[str, ...]
 ) -> GameProfileIssue | None:
-    savegame = dospath.resolve_dos_path(directory / "savegame")
-    expected_palette = pal.paths[game.key]
+    savegame = resolve_dos_path(directory / "savegame")
+    expected_palette = palette_filename(game.key)
     if expected_palette in missing:
         detected = tuple(
             other
             for other in GAMES
             if other.key != game.key
-            and dospath.resolve_dos_path(directory / pal.paths[other.key]).is_file()
+            and resolve_dos_path(directory / palette_filename(other.key)).is_file()
         )
         if len(detected) == 1:
             return GameProfileIssue(GameProfileIssueKind.WRONG_GAME, (expected_palette,), detected[0])

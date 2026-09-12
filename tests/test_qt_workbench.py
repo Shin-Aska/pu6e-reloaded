@@ -3,14 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from game_fixtures import write_game_fixture
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QPaintEvent
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QWidget
 
-import mapedit_gl as renderer
-from test_core import write_game_fixture
-from U6 import obj
 from pu6e_qt.controller import EditorController
 from pu6e_qt.main_window import MainWindow
 from pu6e_qt.renderer_settings import RendererMode, RendererRuntime
@@ -38,14 +36,14 @@ def workbench(
             self.controller = controller
 
         def zoom(self, factor: float) -> None:
-            renderer.scale_factor *= factor
-            self.zoom_changed.emit(renderer.scale_factor)
+            self.controller.camera.set_zoom(self.controller.camera.scale * factor)
+            self.zoom_changed.emit(self.controller.camera.scale)
 
     game_dir = tmp_path / "fp"
     write_game_fixture(game_dir, "fp", "workbench")
     controller = EditorController()
     controller.load_game(game_dir, "fp")
-    renderer.scale_factor = 1.0
+    controller.camera.set_zoom(1.0)
     monkeypatch.setattr(workbench_module, "MapCanvas", StubCanvas)
     window = workbench_module.MainWindow(
         controller,
@@ -79,8 +77,8 @@ def test_workbench_title_identifies_the_active_renderer(workbench) -> None:
 
 
 def test_workbench_map_selection_updates_stack_and_object_properties(workbench) -> None:
-    current = obj.default_object()
-    obj.add_object_at(current, 5, 6, 0)
+    current = workbench.controller.session.editor.new_object()
+    workbench.controller.session.editor.add_object_at(current, 5, 6, 0)
 
     workbench.controller.select_location(5, 6, 0)
 
@@ -93,10 +91,10 @@ def test_workbench_overlay_action_matches_renderer_state(workbench) -> None:
     assert action is not None
 
     action.setChecked(True)
-    assert renderer.display_grid == 1
+    assert workbench.controller.render_options.display_grid == 1
 
     action.setChecked(False)
-    assert renderer.display_grid == 0
+    assert workbench.controller.render_options.display_grid == 0
 
 
 def test_workbench_tile_selection_emits_one_controller_update(workbench) -> None:
@@ -109,10 +107,10 @@ def test_workbench_tile_selection_emits_one_controller_update(workbench) -> None
 
 
 def test_stack_copy_shortcut_wins_over_chunk_dock_shortcut(workbench) -> None:
-    current = obj.default_object()
-    obj.add_object_at(current, 5, 6, 0)
+    current = workbench.controller.session.editor.new_object()
+    workbench.controller.session.editor.add_object_at(current, 5, 6, 0)
     workbench.controller.select_location(5, 6, 0)
-    point = obj.objects_at(5, 6, 0)
+    point = workbench.controller.session.editor.objects_at(5, 6, 0)
     assert point is not None
 
     QTest.keyClick(workbench.docks.stack.tree, Qt.Key.Key_C)
@@ -171,7 +169,7 @@ def test_minimap_repaints_when_zooming_without_moving(
     paint_event = minimap.paintEvent
 
     def record_paint(event: QPaintEvent) -> None:
-        painted_scales.append(renderer.scale_factor)
+        painted_scales.append(workbench.controller.camera.scale)
         paint_event(event)
 
     monkeypatch.setattr(minimap, "paintEvent", record_paint)
@@ -195,7 +193,7 @@ def test_minimap_repaints_when_zooming_without_moving(
 def test_zoom_selector_applies_an_explicit_percentage(workbench) -> None:
     workbench.actions.zoom_selector.setCurrentText("200%")
 
-    assert renderer.scale_factor == 2.0
+    assert workbench.controller.camera.scale == 2.0
     assert workbench.zoom_label.text() == "200%"
 
 
@@ -216,7 +214,7 @@ def test_zoom_actions_disable_at_the_supported_limits(
     zoom_scenario: tuple[float, bool, bool],
 ) -> None:
     scale, zoom_in_enabled, zoom_out_enabled = zoom_scenario
-    renderer.scale_factor = scale
+    workbench.controller.camera.scale = scale
 
     workbench.canvas.zoom_changed.emit(scale)
 
@@ -226,19 +224,44 @@ def test_zoom_actions_disable_at_the_supported_limits(
     )
 
 
-def test_level_selector_jumps_directly_between_surface_and_underworld(workbench) -> None:
+def test_level_selector_jumps_directly_between_named_maps(workbench) -> None:
     workbench.controller.set_position(0x134, 0x16C, 0)
 
     workbench.actions.level_selector.setCurrentIndex(3)
 
     assert workbench.controller.position[2] == 3
-    assert "Underworld 3" in workbench.actions.level_selector.currentText()
+    assert workbench.actions.level_selector.currentText() == "Dungeon level 3"
 
 
 def test_level_selector_stays_synchronized_with_keyboard_navigation(workbench) -> None:
     workbench.controller.change_level(2)
 
     assert workbench.actions.level_selector.currentIndex() == 2
+
+
+def test_named_maps_refresh_on_game_switch_and_keep_unused_slots_accessible(
+    workbench, tmp_path: Path,
+) -> None:
+    selector = workbench.actions.level_selector
+    minimap = workbench.docks.minimap
+    for game, surface, last_map in (
+        ("md", "Mars", "Coal mine & power plant"),
+        ("se", "Eodon Valley", "Map 5 (unused)"),
+        ("fp", "Britannia", "Gargoyle Realm"),
+    ):
+        directory = tmp_path / f"switch-{game}"
+        write_game_fixture(directory, game, f"switch {game}")
+        workbench.controller.load_game(directory, game)
+
+        assert selector.count() == 6
+        assert selector.currentText() == surface
+        assert minimap.level_name == surface
+        selector.setCurrentIndex(5)
+        assert workbench.controller.position[2] == 5
+        assert selector.currentText() == last_map
+        assert minimap.level_name == last_map
+        assert last_map in minimap.toolTip()
+        assert not workbench.controller.dirty
 
 
 def test_quest_browser_tabs_with_object_stack_without_hiding_the_minimap(workbench) -> None:

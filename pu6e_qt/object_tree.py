@@ -14,25 +14,23 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from U6 import obj
-from U6.Point import Point
-from U6.obj import Obj
+from pu6e_core.models.objects import ObjectPoint, WorldObject
 
 if TYPE_CHECKING:
     from .controller import EditorController
 
 
 class ObjectStack(QWidget):
-    object_selected = Signal(Obj)
+    object_selected = Signal(WorldObject)
 
     def __init__(self, controller: EditorController) -> None:
         super().__init__()
         self.controller = controller
-        self.point: Point | None = None
+        self.point: ObjectPoint | None = None
         self.coordinates = (0, 0, 0)
-        self.clipboard: Obj | None = None
-        self.default_object: Obj | None = None
-        self._items: dict[int, Obj] = {}
+        self.clipboard: WorldObject | None = None
+        self.default_object: WorldObject | None = None
+        self._items: dict[int, WorldObject] = {}
         self.position = QLabel("No location selected", self)
         self.tree = QTreeWidget(self)
         self.tree.setHeaderHidden(True)
@@ -59,6 +57,15 @@ class ObjectStack(QWidget):
             QKeySequence(sequence).toString(): handler for sequence, handler in bindings
         }
         self.tree.installEventFilter(self)
+        controller.session_changed.connect(self._session_changed)
+
+    def _session_changed(self) -> None:
+        self.point = None
+        self.coordinates = self.controller.position
+        self.default_object = None
+        self._set_clipboard(None)
+        self.position.setText("No location selected")
+        self._rebuild()
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:
         if watched is self.tree and isinstance(event, QKeyEvent):
@@ -73,16 +80,16 @@ class ObjectStack(QWidget):
                     return True
         return super().eventFilter(watched, event)
 
-    def set_point(self, point: Point | None, x: int, y: int, z: int) -> None:
+    def set_point(self, point: ObjectPoint | None, x: int, y: int, z: int) -> None:
         self.point = point
         self.coordinates = x, y, z
         self.position.setText(f"Position: {x:03x}, {y:03x}, {z:x}")
         self._rebuild()
 
-    def set_default_obj(self, default: Obj) -> None:
+    def set_default_obj(self, default: WorldObject) -> None:
         self.default_object = default
 
-    def _rebuild(self, selected: Obj | None = None) -> None:
+    def _rebuild(self, selected: WorldObject | None = None) -> None:
         self.tree.blockSignals(True)
         self.tree.clear()
         self._items.clear()
@@ -97,7 +104,7 @@ class ObjectStack(QWidget):
         else:
             self.tree.setCurrentItem(current)
 
-    def _append_children(self, parent: QTreeWidgetItem, children: Iterable[Obj]) -> None:
+    def _append_children(self, parent: QTreeWidgetItem, children: Iterable[WorldObject]) -> None:
         for child in children:
             item = QTreeWidgetItem(parent, [child.name()])
             self._items[id(item)] = child
@@ -105,7 +112,7 @@ class ObjectStack(QWidget):
             if child.contains:
                 item.setExpanded(True)
 
-    def _item_for(self, selected: Obj) -> QTreeWidgetItem | None:
+    def _item_for(self, selected: WorldObject) -> QTreeWidgetItem | None:
         iterator = QTreeWidgetItemIterator(self.tree)
         while iterator.value() is not None:
             current = iterator.value()
@@ -120,11 +127,11 @@ class ObjectStack(QWidget):
         if selected is not None:
             self.object_selected.emit(selected)
 
-    def _current(self) -> Obj | None:
+    def _current(self) -> WorldObject | None:
         item = self.tree.currentItem()
         return self._items.get(id(item)) if item is not None else None
 
-    def _parent_and_index(self, item: QTreeWidgetItem) -> tuple[Point | Obj, int] | None:
+    def _parent_and_index(self, item: QTreeWidgetItem) -> tuple[ObjectPoint | WorldObject, int] | None:
         selected = self._items.get(id(item))
         if selected is None:
             return None
@@ -137,12 +144,12 @@ class ObjectStack(QWidget):
                 return container, index
         return None
 
-    def _set_clipboard(self, selected: Obj | None) -> None:
+    def _set_clipboard(self, selected: WorldObject | None) -> None:
         self.clipboard = selected
         description = selected.name() if selected is not None else "empty"
         self.clipboard_label.setText(f"Clipboard: {description}")
 
-    def _changed(self, selected: Obj | None = None) -> None:
+    def _changed(self, selected: WorldObject | None = None) -> None:
         self.controller.mark_dirty(*self.coordinates)
         self._rebuild(selected)
 
@@ -170,13 +177,15 @@ class ObjectStack(QWidget):
         selected = self._current()
         if selected is None:
             return
-        cloned: Obj | None = selected.clone()
+        cloned: WorldObject | None = selected.clone()
         if cloned is not None:
             self._set_clipboard(cloned)
 
     def create_default(self) -> None:
-        template = self.default_object if self.default_object is not None else obj.default_object()
-        cloned: Obj | None = template.clone()
+        if not self.controller.is_loaded:
+            return
+        template = self.default_object if self.default_object is not None else self.controller.session.editor.new_object()
+        cloned: WorldObject | None = template.clone()
         if cloned is not None:
             self._set_clipboard(cloned)
 
@@ -194,7 +203,7 @@ class ObjectStack(QWidget):
         location = self._parent_and_index(item) if item is not None else None
         if location is None:
             if self.point is None:
-                self.point = obj.add_point_at(*self.coordinates)
+                self.point = self.controller.session.editor.point_at(*self.coordinates)
             parent, index = self.point, len(self.point)
         else:
             parent, index = location
@@ -214,7 +223,7 @@ class ObjectStack(QWidget):
         self._set_clipboard(None)
         self._changed(clipboard)
 
-    def move_object(self, source: Obj, destination: Obj) -> bool:
+    def move_object(self, source: WorldObject, destination: WorldObject) -> bool:
         if source is destination or self._contains(source, destination):
             return False
         source_item = self._item_for(source)
@@ -227,5 +236,5 @@ class ObjectStack(QWidget):
         self._changed(source)
         return True
 
-    def _contains(self, parent: Obj, target: Obj) -> bool:
+    def _contains(self, parent: WorldObject, target: WorldObject) -> bool:
         return any(child is target or self._contains(child, target) for child in parent.contains)
