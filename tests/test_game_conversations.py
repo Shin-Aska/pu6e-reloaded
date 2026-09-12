@@ -9,7 +9,7 @@ from game.format.conversations import decode_conversation_archive
 from game.format.errors import FormatError
 from game.models.conversations import Conversation
 from game.services.conversations import read_conversations
-from tests.game_fixtures import encode_lzw_literals
+from game_fixtures import encode_lzw_literals
 
 if TYPE_CHECKING:
     from pathlib import Path

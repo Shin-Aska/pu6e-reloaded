@@ -9,7 +9,7 @@ from game.models.game import GameType
 from game.services.conversations import read_conversations
 from game.services.loader import WorldLoader
 from game.services.saver import WorldSaver
-from tests.game_fixtures import write_game_fixture
+from game_fixtures import write_game_fixture
 from ui.profile.store import GameProfileStore
 from ui.settings.store import SettingsStore
 

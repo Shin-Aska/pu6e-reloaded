@@ -20,7 +20,7 @@ from game.models.objects import ObjectPoint, WorldObject
 from game.services.loader import WorldLoader
 from ui.rendering import batch
 from ui.rendering.pixels import fontchar_to_rgba, indexed_to_rgba
-from tests.game_fixtures import pack_codes, write_game_fixture
+from game_fixtures import pack_codes, write_game_fixture
 
 
 def test_lzw_decompresses_dictionary_references() -> None:

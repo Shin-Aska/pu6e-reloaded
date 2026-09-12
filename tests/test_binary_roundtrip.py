@@ -10,7 +10,7 @@ from game.models.coordinates import pack_coords, unpack_coords
 from game.models.objects import ObjectPoint, WorldObject
 from game.services.loader import WorldLoader
 from game.services.saver import WorldSaver
-from tests.game_fixtures import write_game_fixture
+from game_fixtures import write_game_fixture
 
 if TYPE_CHECKING:
     from pathlib import Path

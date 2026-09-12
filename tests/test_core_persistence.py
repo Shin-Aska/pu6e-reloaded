@@ -8,7 +8,7 @@ import pytest
 from game.models.game import GameType
 from game.services.loader import WorldLoader
 from game.services.saver import WorldSaver
-from tests.game_fixtures import write_game_fixture
+from game_fixtures import write_game_fixture
 
 if TYPE_CHECKING:
     from game.services.session import WorldSession
